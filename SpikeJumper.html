@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spike Jumper X - Developer Console Edition</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
+        body, html {
+            background-color: #0d0f12;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #cfd8dc;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background-color: #1a1f26;
+            overflow: hidden;
+        }
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle, #1a1f26 0%, #0d0f12 100%);
+            z-index: 10;
+        }
+        .screen.active { display: flex !important; }
+        
+        /* HEADER UTILITIES ARRANGEMENT */
+        .account-wrapper {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 100;
+        }
+        .account-btn {
+            background: #242b35;
+            border: 2px solid #00ffaa;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 170, 0.1);
+            transition: all 0.2s;
+        }
+        .account-btn:hover {
+            box-shadow: 0 0 15px rgba(0, 255, 170, 0.4);
+            background: #00ffaa;
+        }
+        .account-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: #00ffaa;
+            transition: fill 0.2s;
+        }
+        .account-btn:hover svg { fill: #0d0f12; }
+        
+        .account-display-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #00ffaa;
+            text-shadow: 0 0 5px rgba(0, 255, 170, 0.3);
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap;
+        }
+        
+        /* RANK BADGE STYLES */
+        .rank-badge {
+            font-size: 0.75rem;
+            font-weight: 900;
+            padding: 3px 8px;
+            border-radius: 3px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .rank-guest { background: #546e7a; color: #fff; }
+        .rank-player { background: #00aaff; color: #fff; }
+        .rank-mod { background: #ff9f43; color: #fff; box-shadow: 0 0 6px #ff9f43; }
+        .rank-admin { background: #a55eea; color: #fff; box-shadow: 0 0 8px #a55eea; }
+        .rank-dev { background: #ff0055; color: #fff; box-shadow: 0 0 12px #ff0055; }
+
+        .stats-trigger-btn {
+            background: #1a1f26;
+            border: 1px solid #ffca28;
+            color: #ffca28;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            min-width: auto; margin: 0;
+            transition: all 0.2s;
+        }
+        .stats-trigger-btn:hover {
+            background: #ffca28; color: #0d0f12;
+            box-shadow: 0 0 10px rgba(255, 202, 40, 0.4);
+        }
+
+        /* CONSOLE COMMAND PORT TRIGGER BUTTON */
+        .dev-terminal-btn {
+            background: #11141a;
+            border: 2px solid #ff0055;
+            color: #ff0055;
+            border-radius: 50%;
+            width: 44px; height: 44px;
+            display: none;
+            justify-content: center; align-items: center;
+            cursor: pointer;
+            font-family: monospace; font-weight: bold; font-size: 1.2rem;
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.2);
+            transition: all 0.2s;
+        }
+        .dev-terminal-btn:hover {
+            background: #ff0055; color: #fff;
+            box-shadow: 0 0 15px #ff0055;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: #11141a;
+            border: 1px solid #2c3540;
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 1rem;
+            border-radius: 4px;
+        }
+        .input-field:focus { border-color: #00ffaa; outline: none; }
+        .form-error { color: #ff0055; font-size: 0.9rem; margin-bottom: 10px; height: 20px; }
+
+        h1 {
+            font-size: 4rem; margin-bottom: 10px;
+            color: #00ffaa; text-shadow: 0 0 15px rgba(0, 255, 170, 0.3);
+            font-weight: 800; letter-spacing: 6px;
+        }
+        .version-tag { font-size: 1rem; color: #ff0055; margin-top: -5px; margin-bottom: 40px; letter-spacing: 2px; }
+        
+        button {
+            padding: 16px 36px; font-size: 1.1rem; font-weight: bold; font-family: inherit; margin: 8px; cursor: pointer;
+            background-color: #242b35; color: #00ffaa; border: 2px solid #00ffaa; border-radius: 4px;
+            min-width: 320px; text-transform: uppercase; transition: all 0.1s ease;
+        }
+        button:hover:not(:disabled) {
+            background-color: #00ffaa; color: #0d0f12;
+            box-shadow: 0 0 15px rgba(0, 255, 170, 0.4);
+        }
+        button:disabled { border-color: #2c3540; color: #546e7a; background-color: #1a1f26; cursor: not-allowed; box-shadow: none; }
+        .back-layout-btn { position: absolute; bottom: 30px; left: 30px; min-width: auto; padding: 10px 24px; }
+        
+        .matrix-grid {
+            display: grid; grid-template-columns: repeat(8, 1fr); gap: 12px;
+            max-height: 60vh; overflow-y: scroll; padding: 20px; width: 85%;
+            background: rgba(0, 0, 0, 0.4); border: 1px solid #2c3540;
+        }
+        .matrix-grid::-webkit-scrollbar { width: 8px; }
+        .matrix-grid::-webkit-scrollbar-thumb { background: #00ffaa; border-radius: 4px; }
+        .node-select-btn { min-width: auto; padding: 16px; margin: 0; font-size: 1rem; }
+        
+        /* SETTINGS SLIDER AND CONFIG PANELS */
+        .config-box { background: rgba(0, 0, 0, 0.3); padding: 40px; border: 1px solid #2c3540; width: 65%; text-align: center; max-height: 70vh; overflow-y: auto; }
+        .config-row { margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        
+        /* TOGGLE SWITCH STYLES */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 80%;
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(17, 20, 26, 0.6);
+            padding: 12px 20px;
+            border: 1px solid #2c3540;
+            border-radius: 4px;
+        }
+        .switch-label {
+            font-size: 1.1rem;
+            color: #cfd8dc;
+        }
+        .switch-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        .switch-input-wrapper input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #2c3540;
+            transition: .3s;
+            border-radius: 34px;
+            border: 1px solid #546e7a;
+        }
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #546e7a;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .switch-slider {
+            background-color: rgba(0, 255, 170, 0.1);
+            border-color: #00ffaa;
+        }
+        input:checked + .switch-slider:before {
+            transform: translateX(24px);
+            background-color: #00ffaa;
+            box-shadow: 0 0 8px #00ffaa;
+        }
+
+        .volume-slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 80%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .volume-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: #2c3540;
+            outline: none;
+            cursor: pointer;
+        }
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00ffaa;
+            box-shadow: 0 0 8px rgba(0, 255, 170, 0.6);
+            transition: transform 0.1s;
+        }
+        .volume-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        .volume-value-display {
+            font-family: monospace;
+            font-size: 1.2rem;
+            color: #00ffaa;
+            min-width: 45px;
+            text-align: right;
+        }
+
+        .stats-grid-display { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 20px; }
+        .stat-card { background: #11141a; border: 1px solid #2c3540; padding: 15px 5px; border-radius: 6px; }
+        .stat-card h3 { color: #8a9ba8; font-size: 0.8rem; margin-bottom: 5px; text-transform: uppercase; }
+        .stat-card p { color: #00ffaa; font-size: 1.6rem; font-weight: bold; }
+
+        /* SHOP AND MOD STYLING DEPENDENCIES */
+        .currency-indicator-bar { display: flex; gap: 20px; margin-bottom: 20px; font-weight: bold; font-size: 1.1rem; }
+        .color-picker-row { display: flex; align-items: center; justify-content: space-between; width: 80%; max-width: 400px; margin: 8px auto; }
+        .color-picker-input { background: transparent; border: none; width: 50px; height: 32px; cursor: pointer; }
+
+        /* DEV TERMINAL SUBELEMENTS */
+        .console-output-box {
+            background: #05070a; border: 1px solid #ff0055; border-radius: 4px;
+            padding: 15px; margin-top: 15px; text-align: left;
+            font-family: monospace; font-size: 0.95rem; color: #ff0055;
+            height: 140px; overflow-y: auto; white-space: pre-wrap;
+        }
+
+        canvas { display: block; background-color: #0d0f12; width: 100%; height: 100%; }
+        .viewport-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(13, 15, 18, 0.95); display: none;
+            flex-direction: column; justify-content: center; align-items: center; z-index: 20;
+        }
+        .viewport-overlay.active { display: flex !important; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="account-wrapper" id="main-menu-account-anchor">
+        <div class="account-btn" id="act-account-menu-trigger">
+            <svg viewBox="0 0 24 24">
+                <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
+            </svg>
+        </div>
+        <div class="account-display-name" id="account-name-display-label"></div>
+        <span class="rank-badge rank-guest" id="account-rank-badge-element">GUEST</span>
+        <button class="stats-trigger-btn" id="act-stats-board-trigger">Stats</button>
+        <div class="dev-terminal-btn" id="act-console-panel-trigger">&lt;/&gt;</div>
+    </div>
+
+    <div id="view-main" class="screen active">
+        <h1>SPIKE JUMPER X</h1>
+        <div class="version-tag">DEV COMMAND SYSTEM STABLE</div>
+        <button id="act-main-init">Play Game</button>
+        <button id="act-main-shop" style="border-color: #ffca28; color: #ffca28;">Shop</button>
+        <button id="act-main-mods" style="border-color: #00ccff; color: #00ccff;">Mods Menu</button>
+        <button id="act-main-config">Settings</button>
+    </div>
+
+    <div id="view-shop" class="screen">
+        <h1>THE MOD SHOP</h1>
+        <div class="currency-indicator-bar">
+            <span style="color: #ffca28;">⭐ Stars: <span id="shop-wallet-stars">0</span></span>
+            <span style="color: #00ccff;">🌙 Moons: <span id="shop-wallet-moons">0</span></span>
+            <span style="color: #ff9f43;">☀️ Suns: <span id="shop-wallet-suns">0</span></span>
+        </div>
+        <div class="config-box" style="width: 550px;">
+            <div class="config-row">
+                <h3 style="color:#00ffaa;">Mod 1: Custom Appearance</h3>
+                <p style="font-size:0.9rem; color:#b0bec5;">Unlocks skin, outline, trail, and background customizers.</p>
+                <button id="act-buy-mod1" style="min-width:240px; padding:10px; font-size:1rem;">Buy: 500 Stars</button>
+            </div>
+            <div class="config-row">
+                <h3 style="color:#ff9f43;">Mod 2: Gravity Controller</h3>
+                <p style="font-size:0.9rem; color:#b0bec5;">Unlocks global physics weight displacement sliders.</p>
+                <button id="act-buy-mod2" style="min-width:240px; padding:10px; font-size:1rem; border-color:#ff9f43; color:#ff9f43;">Buy: 500 Moons</button>
+            </div>
+            <div class="config-row">
+                <h3 style="color:#e056fd;">Mod 3: Velocity Overdrive</h3>
+                <p style="font-size:0.9rem; color:#b0bec5;">Unlocks runtime horizontal cruise speed calibrations.</p>
+                <button id="act-buy-mod3" style="min-width:240px; padding:10px; font-size:1rem; border-color:#e056fd; color:#e056fd;">Buy: 500 Suns</button>
+            </div>
+        </div>
+        <button id="act-shop-back" class="back-layout-btn">Back</button>
+    </div>
+
+    <div id="view-mods" class="screen">
+        <h1>MODIFICATIONS CELL</h1>
+        <p style="color: #8a9ba8; margin-bottom:20px;">Tweak active matrix engines</p>
+        <div class="config-box" style="width: 600px;">
+            <div id="mod1-locked-state" style="margin: 15px 0; color: #546e7a;">🔒 Appearance Customizer (Locked in Shop)</div>
+            <button id="act-open-customizer" style="display:none; border-color:#00ffaa; color:#00ffaa; margin: 15px auto;">Open Appearance Customizer</button>
+            
+            <hr style="border: 0; border-top: 1px solid #2c3540; margin: 20px 0;">
+
+            <div id="mod2-locked-state" style="margin: 15px 0; color: #546e7a;">🔒 Gravity Slider Engine (Locked in Shop)</div>
+            <div class="config-row" id="mod2-slider-container" style="display:none;">
+                <p style="font-size:1.1rem; color:#ff9f43;">Gravity Physics Factor</p>
+                <div class="volume-slider-container">
+                    <input type="range" id="mod-gravity-slider" class="volume-slider" min="20" max="250" value="100">
+                    <span id="mod-gravity-display" class="volume-value-display">1.0x</span>
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #2c3540; margin: 20px 0;">
+
+            <div id="mod3-locked-state" style="margin: 15px 0; color: #546e7a;">🔒 Speed Slider Engine (Locked in Shop)</div>
+            <div class="config-row" id="mod3-slider-container" style="display:none;">
+                <p style="font-size:1.1rem; color:#e056fd;">Velocity Cruise Factor</p>
+                <div class="volume-slider-container">
+                    <input type="range" id="mod-speed-slider" class="volume-slider" min="50" max="300" value="100">
+                    <span id="mod-speed-display" class="volume-value-display">1.0x</span>
+                </div>
+            </div>
+        </div>
+        <button id="act-mods-back" class="back-layout-btn">Back</button>
+    </div>
+
+    <div id="view-customizer" class="screen">
+        <h2>Appearance Customizer</h2>
+        <div class="config-box" style="width: 450px;">
+            <div class="color-picker-row">
+                <span class="switch-label">Character Fill</span>
+                <input type="color" id="picker-char-fill" class="color-picker-input" value="#00ffaa">
+            </div>
+            <div class="color-picker-row">
+                <span class="switch-label">Character Outline</span>
+                <input type="color" id="picker-char-stroke" class="color-picker-input" value="#ffffff">
+            </div>
+            <div class="color-picker-row">
+                <span class="switch-label">Trail Streamer</span>
+                <input type="color" id="picker-char-trail" class="color-picker-input" value="#00ffaa">
+            </div>
+            <div class="color-picker-row">
+                <span class="switch-label">Dynamic Matrix Background</span>
+                <input type="color" id="picker-bg-hex" class="color-picker-input" value="#0d0f12">
+            </div>
+            <button id="act-reset-appearance" style="margin-top:20px; font-size:0.9rem; padding:8px; min-width:180px; border-color:#ff0055; color:#ff0055;">Reset Defaults</button>
+        </div>
+        <button id="act-customizer-back" class="back-layout-btn">Back</button>
+    </div>
+
+    <div id="view-sector" class="screen">
+        <h1>Select Sector</h1>
+        <button id="act-sector-alpha">Sector Alpha (Classic Jumper)</button>
+        <button id="act-sector-beta" style="border-color: #ff9f43; color: #ff9f43;">Sector Beta (Flappy Ship Mode)</button>
+        <button id="act-sector-gamma" style="border-color: #e056fd; color: #e056fd;">Sector Gamma (Ball Gravity Mode)</button>
+        <div id="sector-lock-hint" style="color: #ff0055; font-size: 0.95rem; font-weight: bold; margin-top: 10px; height: 25px; text-align: center;"></div>
+        <button id="act-sec-back" class="back-layout-btn">Back</button>
+    </div>
+
+    <div id="view-node" class="screen">
+        <h2 id="view-node-title">Choose a Level</h2>
+        <div class="matrix-grid" id="node-matrix-render-target"></div>
+        <button id="act-node-back" class="back-layout-btn">Back</button>
+    </div>
+
+    <div id="view-config" class="screen">
+        <h1>Settings</h1>
+        <div class="config-box">
+            <div class="config-row">
+                <p style="font-size: 1.3rem;">Action Control Key: <span id="cfg-key-label" style="color:#00ffaa; font-weight:bold;">Space</span></p>
+                <button id="act-rebind-trigger" style="min-width: 260px; padding: 12px;">Change Key Bind</button>
+            </div>
+            
+            <hr style="border: 0; border-top: 1px solid #2c3540; margin: 20px 0;">
+
+            <div class="config-row">
+                <div class="switch-container">
+                    <span class="switch-label">Keep Me Logged In</span>
+                    <label class="switch-input-wrapper">
+                        <input type="checkbox" id="cfg-autologin-switch">
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #2c3540; margin: 20px 0;">
+
+            <div class="config-row">
+                <p style="font-size: 1.3rem; margin-bottom: 5px;">Master Audio Volume</p>
+                <div class="volume-slider-container">
+                    <input type="range" id="cfg-volume-slider" class="volume-slider" min="0" max="100" value="50">
+                    <span id="cfg-volume-value" class="volume-value-display">50%</span>
+                </div>
+            </div>
+        </div>
+        <button id="act-config-back" class="back-layout-btn">Back</button>
+    </div>
+
+    <div id="view-runtime" class="screen">
+        <canvas id="simulationCanvasEngine"></canvas>
+        
+        <div id="view-halt-overlay" class="viewport-overlay">
+            <div style="text-align:center;">
+                <h2 style="color:#ff0055; margin-bottom:25px; font-size: 2.5rem;">GAME PAUSED</h2>
+                <button id="act-halt-resume">Resume Game</button>
+                <button id="act-halt-mods" style="border-color: #00ccff; color: #00ccff;">Mods Menu</button>
+                <button id="act-halt-config" style="border-color: #ffca28; color: #ffca28;">Settings</button>
+                <button id="act-halt-abort">Quit to Menu</button>
+            </div>
+        </div>
+
+        <div id="view-success-overlay" class="viewport-overlay">
+            <div style="text-align:center;">
+                <h2 id="success-screen-headline" style="color:#00ffaa; margin-bottom:15px; font-size: 2.5rem;">LEVEL COMPLETED!</h2>
+                <p id="cfg-telemetry-dump" style="margin-bottom:25px; color: #b0bec5; font-size: 1.2rem;">Stats Loading...</p>
+                <button id="act-success-forward">Next Level</button>
+                <button id="act-success-exit">Level Select</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-game-stats" class="screen">
+        <h2>Performance Dashboard</h2>
+        <p id="stats-guest-disclaimer" style="margin-bottom: 10px; color: #ff0055; font-style: italic;"></p>
+        <div class="config-box" style="width: 840px;">
+            <div class="stats-grid-display">
+                <div class="stat-card">
+                    <h3>Levels Beaten</h3>
+                    <p id="stat-val-beaten">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Stars Earned</h3>
+                    <p id="stat-val-stars" style="color: #ffca28;">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Moons Earned</h3>
+                    <p id="stat-val-moons" style="color: #00ccff;">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Suns Earned</h3>
+                    <p id="stat-val-suns" style="color: #ff9f43;">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Deaths</h3>
+                    <p id="stat-val-deaths" style="color: #ff0055;">0</p>
+                </div>
+            </div>
+        </div>
+        <button id="act-stats-back" class="back-layout-btn">Back</button>
+    </div>
+
+    <div id="view-developer-panel" class="screen">
+        <h2 style="color: #ff0055; letter-spacing: 2px;">DEVELOPER COMMAND PORTAL</h2>
+        <p style="color: #8a9ba8; margin-bottom: 20px;">Execute targeted systems orchestration syntax queries</p>
+        <div class="config-box" style="width: 650px; padding: 30px;">
+            <input type="text" id="dev-console-input-box" class="input-field" style="font-family: monospace; border-color: #ff0055;" placeholder="e.g. /setnode Username beta 45">
+            <div class="console-output-box" id="dev-console-log-target">Terminal ready. Awaiting operational parameters...</div>
+            <div style="margin-top: 20px; display: flex; gap: 15px; justify-content: center;">
+                <button id="act-console-execute" style="border-color: #ff0055; color: #ff0055; min-width: 180px; padding: 12px;">Execute</button>
+                <button id="act-console-close" style="border-color: #546e7a; color: #546e7a; min-width: 180px; padding: 12px;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-account-anonymous" class="screen">
+        <h2>Account Hub</h2>
+        <p style="margin-bottom: 30px; color:#b0bec5;">Sign up now to ensure your progress level configurations save automatically!</p>
+        <button id="act-go-login">Log In</button>
+        <button id="act-go-signup">Sign Up</button>
+        <button id="act-anon-back" class="back-layout-btn">Close</button>
+    </div>
+
+    <div id="view-account-signup" class="screen">
+        <h2>Create Account</h2>
+        <div class="config-box" style="width: 450px; padding: 25px;">
+            <div class="form-error" id="signup-error-box"></div>
+            <input type="text" id="signup-username" class="input-field" placeholder="Username" maxlength="20">
+            <input type="password" id="signup-password" class="input-field" placeholder="Password (max 6 digits)" maxlength="6">
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button id="act-submit-signup" style="margin:0; padding:12px; min-width: auto; flex: 1;">Register</button>
+                <button id="act-submit-dev-signup" style="margin:0; padding:12px; min-width: auto; flex: 1; border-color: #ff0055; color: #ff0055;">Create as Dev</button>
+            </div>
+        </div>
+        <button id="act-signup-back" class="back-layout-btn">Back</button>
+    </div>
+
+    <div id="view-account-login" class="screen">
+        <h2>Account Login</h2>
+        <div class="config-box" style="width: 400px; padding: 25px;">
+            <div class="form-error" id="login-error-box"></div>
+            <input type="text" id="login-username" class="input-field" placeholder="Username">
+            <input type="password" id="login-password" class="input-field" placeholder="Password" maxlength="6">
+            <button id="act-submit-login" style="min-width:100%; margin: 15px 0 0 0; padding:12px;">Login</button>
+        </div>
+        <button id="act-login-back" class="back-layout-btn">Back</button>
+    </div>
+
+    <div id="view-account-authenticated" class="screen">
+        <h2>Account Options</h2>
+        <p style="margin-bottom: 30px; color:#b0bec5;">Logged in profile details management cell.</p>
+        <button id="act-user-logout">Log Out</button>
+        <button id="act-user-delete-prompt" style="border-color: #ff0055; color: #ff0055;">Delete Account</button>
+        <button id="act-auth-back" class="back-layout-btn">Close</button>
+    </div>
+
+    <div id="view-account-delete-verify" class="screen">
+        <h2 style="color: #ff0055;">Confirm Permanent Wipedown</h2>
+        <p style="margin-bottom: 20px; color:#b0bec5; text-align: center; width: 500px;">Please type your account password below to safely authorize full system removal actions.</p>
+        <div class="config-box" style="width: 400px; padding: 25px;">
+            <div class="form-error" id="delete-error-box"></div>
+            <input type="password" id="delete-password-confirm" class="input-field" placeholder="Password" maxlength="6">
+            <button id="act-submit-delete-confirm" style="min-width:100%; margin: 15px 0 0 0; padding:12px; background:#ff0055; border-color:#ff0055; color:#fff;">Confirm Deletion</button>
+        </div>
+        <button id="act-delete-verify-back" class="back-layout-btn">Cancel</button>
+    </div>
+</div>
+
+<script>
+const engineState = {
+    jumpKeyName: "Space",
+    jumpKeyCodeValue: "Space",
+    masterVolume: 0.5,
+    autoLoginEnabled: false,
+    highestCompletedNode: 1, 
+    highestCompletedNodeBeta: 1, 
+    highestCompletedNodeGamma: 1,
+    currentActiveSector: "alpha", 
+    activeSelectedNode: 1,
+    isEnginePaused: false,
+    isInputCapturing: false,
+    isEngineActive: false,
+    isActionKeyPressed: false, 
+    animationLoopReference: null,
+    metricsJumpsThisSession: 0,
+    metricsDeathsThisSession: 0,
+    virtualWidth: 1920,
+    virtualHeight: 1080,
+    activeUserAccount: null,
+    isConfigOpenedFromPause: false,
+    previousScreenBeforeOverlay: null,
+
+    guestLifetimeDeaths: 0,
+    guestLevelsBeaten: 0,
+    guestStarsEarned: 0,
+    guestMoonsEarned: 0,
+    guestSunsEarned: 0,
+
+    // SHOP & MODS DATA CONFIGS
+    unlockedMod1: false,
+    unlockedMod2: false,
+    unlockedMod3: false,
+    modGravityMultiplier: 1.0,
+    modSpeedMultiplier: 1.0,
+    
+    // CUSTOMIZER APPAREL TARGETS
+    customFillColor: "#00ffaa",
+    customStrokeColor: "#ffffff",
+    customTrailColor: "#00ffaa",
+    customBgColor: "#0d0f12"
+};
+
+const AccountManager = {
+    getAllUsers() {
+        try {
+            const data = localStorage.getItem('sj_users_db');
+            return data ? JSON.parse(data) : {};
+        } catch(e) { return {}; }
+    },
+    saveAllUsers(usersObj) {
+        try { localStorage.setItem('sj_users_db', JSON.stringify(usersObj)); } catch(e) {}
+    },
+    updateInterfaceDisplays() {
+        const label = document.getElementById('account-name-display-label');
+        const badge = document.getElementById('account-rank-badge-element');
+        const devButton = document.getElementById('act-console-panel-trigger');
+        
+        badge.className = "rank-badge ";
+        
+        if (engineState.activeUserAccount) {
+            label.innerText = engineState.activeUserAccount.username.toUpperCase();
+            engineState.highestCompletedNode = engineState.activeUserAccount.savedLevel || 1;
+            engineState.highestCompletedNodeBeta = engineState.activeUserAccount.savedLevelBeta || 1;
+            engineState.highestCompletedNodeGamma = engineState.activeUserAccount.savedLevelGamma || 1;
+            
+            // Sync unlocked upgrades from account db
+            engineState.unlockedMod1 = !!engineState.activeUserAccount.unlockedMod1;
+            engineState.unlockedMod2 = !!engineState.activeUserAccount.unlockedMod2;
+            engineState.unlockedMod3 = !!engineState.activeUserAccount.unlockedMod3;
+            
+            const currentRank = engineState.activeUserAccount.rank || "PLAYER";
+            if (currentRank === "DEVELOPER") {
+                badge.innerText = "DEV";
+                badge.classList.add('rank-dev');
+                devButton.style.display = "flex";
+            } else if (currentRank === "ADMIN") {
+                badge.innerText = "ADMIN";
+                badge.classList.add('rank-admin');
+                devButton.style.display = "flex";
+            } else if (currentRank === "MODERATOR") {
+                badge.innerText = "MOD";
+                badge.classList.add('rank-mod');
+                devButton.style.display = "flex";
+            } else {
+                badge.innerText = "PLAYER";
+                badge.classList.add('rank-player');
+                devButton.style.display = "none";
+            }
+            
+            if (engineState.autoLoginEnabled) {
+                try { localStorage.setItem('sj_active_session_user', engineState.activeUserAccount.username); } catch(e) {}
+            }
+        } else {
+            label.innerText = "GUEST_USER";
+            engineState.highestCompletedNode = 1;
+            engineState.highestCompletedNodeBeta = 1;
+            engineState.highestCompletedNodeGamma = 1;
+            badge.innerText = "GUEST";
+            badge.classList.add('rank-guest');
+            devButton.style.display = "none";
+        }
+        this.updateShopAndModInterfaces();
+    },
+    updateShopAndModInterfaces() {
+        // Wallets update
+        let s = engineState.guestStarsEarned, m = engineState.guestMoonsEarned, su = engineState.guestSunsEarned;
+        if (engineState.activeUserAccount) {
+            s = engineState.activeUserAccount.starsEarned || 0;
+            m = engineState.activeUserAccount.moonsEarned || 0;
+            su = engineState.activeUserAccount.sunsEarned || 0;
+        }
+        document.getElementById('shop-wallet-stars').innerText = s;
+        document.getElementById('shop-wallet-moons').innerText = m;
+        document.getElementById('shop-wallet-suns').innerText = su;
+
+        // Mod 1 element toggle updates
+        const buy1 = document.getElementById('act-buy-mod1');
+        if (engineState.unlockedMod1) { buy1.innerText = "UNLOCKED"; buy1.disabled = true; document.getElementById('mod1-locked-state').style.display = "none"; document.getElementById('act-open-customizer').style.display = "block"; } 
+        else { buy1.innerText = "Buy: 500 Stars"; buy1.disabled = false; document.getElementById('mod1-locked-state').style.display = "block"; document.getElementById('act-open-customizer').style.display = "none"; }
+
+        // Mod 2 element toggle updates
+        const buy2 = document.getElementById('act-buy-mod2');
+        if (engineState.unlockedMod2) { buy2.innerText = "UNLOCKED"; buy2.disabled = true; document.getElementById('mod2-locked-state').style.display = "none"; document.getElementById('mod2-slider-container').style.display = "flex"; } 
+        else { buy2.innerText = "Buy: 500 Moons"; buy2.disabled = false; document.getElementById('mod2-locked-state').style.display = "block"; document.getElementById('mod2-slider-container').style.display = "flex"; }
+
+        // Mod 3 element toggle updates
+        const buy3 = document.getElementById('act-buy-mod3');
+        if (engineState.unlockedMod3) { buy3.innerText = "UNLOCKED"; buy3.disabled = true; document.getElementById('mod3-locked-state').style.display = "none"; document.getElementById('mod3-slider-container').style.display = "flex"; } 
+        else { buy3.innerText = "Buy: 500 Suns"; buy3.disabled = false; document.getElementById('mod3-locked-state').style.display = "block"; document.getElementById('mod3-slider-container').style.display = "flex"; }
+    },
+    syncGameProgressData(nodeValue, incrementDeath = false) {
+        if (!engineState.activeUserAccount) {
+            if (incrementDeath) {
+                engineState.guestLifetimeDeaths++;
+            }
+            return;
+        }
+        
+        const db = this.getAllUsers();
+        const account = db[engineState.activeUserAccount.username];
+        if (account) {
+            if (incrementDeath) {
+                account.totalDeaths = (account.totalDeaths || 0) + 1;
+            } else if (nodeValue > 0) {
+                if (engineState.currentActiveSector === "alpha") {
+                    if (nodeValue > (account.savedLevel || 1)) {
+                        account.savedLevel = nodeValue;
+                        account.levelsBeaten = (account.levelsBeaten || 0) + 1;
+                        account.starsEarned = (account.starsEarned || 0) + 1;
+                        engineState.highestCompletedNode = nodeValue;
+                    }
+                } else if (engineState.currentActiveSector === "beta") {
+                    if (nodeValue > (account.savedLevelBeta || 1)) {
+                        account.savedLevelBeta = nodeValue;
+                        account.levelsBeaten = (account.levelsBeaten || 0) + 1;
+                        account.moonsEarned = (account.moonsEarned || 0) + 1;
+                        engineState.highestCompletedNodeBeta = nodeValue;
+                    }
+                } else {
+                    if (nodeValue > (account.savedLevelGamma || 1)) {
+                        account.savedLevelGamma = nodeValue;
+                        account.levelsBeaten = (account.levelsBeaten || 0) + 1;
+                        account.sunsEarned = (account.sunsEarned || 0) + 1;
+                        engineState.highestCompletedNodeGamma = nodeValue;
+                    }
+                }
+            }
+            // Retain mod upgrade info
+            account.unlockedMod1 = engineState.unlockedMod1;
+            account.unlockedMod2 = engineState.unlockedMod2;
+            account.unlockedMod3 = engineState.unlockedMod3;
+
+            engineState.activeUserAccount = account;
+            this.saveAllUsers(db);
+        }
+    },
+    populateStatsViewDashboard() {
+        const beatenLabel = document.getElementById('stat-val-beaten');
+        const starsLabel = document.getElementById('stat-val-stars');
+        const moonsLabel = document.getElementById('stat-val-moons');
+        const sunsLabel = document.getElementById('stat-val-suns');
+        const deathsLabel = document.getElementById('stat-val-deaths');
+        const disclaimer = document.getElementById('stats-guest-disclaimer');
+
+        if (engineState.activeUserAccount) {
+            disclaimer.innerText = "";
+            beatenLabel.innerText = engineState.activeUserAccount.levelsBeaten || 0;
+            starsLabel.innerText = engineState.activeUserAccount.starsEarned || 0;
+            moonsLabel.innerText = engineState.activeUserAccount.moonsEarned || 0;
+            sunsLabel.innerText = engineState.activeUserAccount.sunsEarned || 0;
+            deathsLabel.innerText = engineState.activeUserAccount.totalDeaths || 0;
+        } else {
+            disclaimer.innerText = "⚠️ Playing as Guest: Stats are volatile and won't be saved!";
+            beatenLabel.innerText = engineState.guestLevelsBeaten;
+            starsLabel.innerText = engineState.guestStarsEarned;
+            moonsLabel.innerText = engineState.guestMoonsEarned;
+            sunsLabel.innerText = engineState.guestSunsEarned;
+            deathsLabel.innerText = engineState.guestLifetimeDeaths;
+        }
+    }
+};
+
+// INITIALIZATION LOGIC FOR CONFIG PREFERENCES
+(() => {
+    try {
+        const savedKey = localStorage.getItem('sj_save_key');
+        const savedCode = localStorage.getItem('sj_save_code');
+        if (savedKey && savedCode) {
+            engineState.jumpKeyName = savedKey;
+            engineState.jumpKeyCodeValue = savedCode;
+        }
+        
+        const savedVol = localStorage.getItem('sj_save_volume');
+        if (savedVol !== null) {
+            engineState.masterVolume = parseFloat(savedVol);
+            document.getElementById('cfg-volume-slider').value = Math.round(engineState.masterVolume * 100);
+            document.getElementById('cfg-volume-value').innerText = `${Math.round(engineState.masterVolume * 100)}%`;
+        }
+
+        const savedAutoLogin = localStorage.getItem('sj_save_autologin');
+        if (savedAutoLogin !== null) {
+            engineState.autoLoginEnabled = savedAutoLogin === 'true';
+            document.getElementById('cfg-autologin-switch').checked = engineState.autoLoginEnabled;
+        }
+
+        if (engineState.autoLoginEnabled) {
+            const cachedUser = localStorage.getItem('sj_active_session_user');
+            if (cachedUser) {
+                const db = AccountManager.getAllUsers();
+                if (db[cachedUser]) {
+                    engineState.activeUserAccount = db[cachedUser];
+                }
+            }
+        }
+    } catch (error) {}
+})();
+
+const SoundSynthesizerNode = {
+    audioContextRef: null,
+    initializeAudioContext() {
+        if (!this.audioContextRef) {
+            try { this.audioContextRef = new (window.AudioContext || window.webkitAudioContext)(); } catch (err) { return; }
+        }
+        if (this.audioContextRef && this.audioContextRef.state === 'suspended') {
+            this.audioContextRef.resume();
+        }
+    },
+    emitToneWaveform(targetFrequency, pulseType, attackPhase, decayPhase, gainAmplitude) {
+        this.initializeAudioContext();
+        if (!this.audioContextRef) return;
+        try {
+            const adjustedGain = gainAmplitude * engineState.masterVolume;
+            if (adjustedGain <= 0) return;
+
+            const time = this.audioContextRef.currentTime;
+            const oscillator = this.audioContextRef.createOscillator();
+            const gainNode = this.audioContextRef.createGain();
+            oscillator.type = pulseType;
+            oscillator.frequency.setValueAtTime(targetFrequency, time);
+            gainNode.gain.setValueAtTime(adjustedGain, time);
+            gainNode.gain.linearRampToValueAtTime(0.0001, time + attackPhase + decayPhase);
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContextRef.destination);
+            oscillator.start(time);
+            oscillator.stop(time + attackPhase + decayPhase);
+        } catch(err) {}
+    }
+};
+
+class MatrixBackgroundProjection {
+    constructor(scrollVelocityRatio, colorHexValue, staticBaseHeight, offsetAmplitude) {
+        this.ratio = scrollVelocityRatio; this.color = colorHexValue;
+        this.baseHeight = staticBaseHeight; this.amplitude = offsetAmplitude;
+        this.vectorPointsArray = []; this.compileProjectionVectors();
+    }
+    compileProjectionVectors() {
+        let x = 0;
+        for (let i = 0; i < 1000; i++) {
+            this.vectorPointsArray.push({
+                x: x, y: engineState.virtualHeight - this.baseHeight - (Math.sin(i * 0.4) * this.amplitude)
+            });
+            x += 250 + (Math.abs(Math.cos(i)) * 250);
+        }
+    }
+    renderLayer(ctx, camX) {
+        ctx.fillStyle = this.color; ctx.beginPath();
+        let scrollOffset = camX * this.ratio; ctx.moveTo(0, engineState.virtualHeight);
+        let startDrawing = false;
+        for (let i = 0; i < this.vectorPointsArray.length; i++) {
+            let drawX = this.vectorPointsArray[i].x - scrollOffset;
+            if (drawX >= -600 && drawX <= engineState.virtualWidth + 600) {
+                if (!startDrawing) { ctx.lineTo(drawX, engineState.virtualHeight); startDrawing = true; }
+                ctx.lineTo(drawX, this.vectorPointsArray[i].y);
+            }
+        }
+        ctx.lineTo(engineState.virtualWidth, engineState.virtualHeight); ctx.closePath(); ctx.fill();
+    }
+}
+
+const EnvironmentVisualCoordinator = {
+    projectionLayers: [],
+    instantiateSubsystems() {
+        this.projectionLayers = [
+            new MatrixBackgroundProjection(0.06, "#11141a", 500, 80),
+            new MatrixBackgroundProjection(0.15, "#161b24", 360, 50),
+            new MatrixBackgroundProjection(0.28, "#1d2430", 220, 20)
+        ];
+    },
+    executeRenderPass(ctx, camX) {
+        for (let i = 0; i < this.projectionLayers.length; i++) { this.projectionLayers[i].renderLayer(ctx, camX); }
+    }
+};
+
+class EngineeringVolatilityParticle {
+    constructor(coordX, coordY, hexadecimalColor, speedVectorX, speedVectorY, totalTicksLife, scalePixels) {
+        this.x = coordX; this.y = coordY; this.color = hexadecimalColor;
+        this.vx = speedVectorX; this.vy = speedVectorY; this.maxLife = totalTicksLife; this.life = totalTicksLife; this.size = scalePixels;
+    }
+    processVolatilityTicks() { this.vy += 0.35; this.x += this.vx; this.y += this.vy; this.life--; }
+    renderParticleElement(ctx, camX) {
+        ctx.save(); ctx.globalAlpha = this.life / this.maxLife; ctx.fillStyle = this.color;
+        ctx.fillRect(this.x - camX, this.y, this.size, this.size); ctx.restore();
+    }
+}
+
+const ParticleFXArrayPoolController = {
+    allocatedParticles: [],
+    triggerExplosionEmanation(originX, originY, colorPayload, intensityCount) {
+        for (let i = 0; i < intensityCount; i++) {
+            let angle = Math.random() * Math.PI * 2; let speed = 2 + Math.random() * 12;
+            this.allocatedParticles.push(new EngineeringVolatilityParticle(
+                originX, originY, colorPayload, Math.cos(angle) * speed, Math.sin(angle) * speed,
+                40 + Math.floor(Math.random() * 30), 6 + Math.random() * 8
+            ));
+        }
+    },
+    updateParticleArrayStates() {
+        for (let i = this.allocatedParticles.length - 1; i >= 0; i--) {
+            this.allocatedParticles[i].processVolatilityTicks();
+            if (this.allocatedParticles[i].life <= 0) this.allocatedParticles.splice(i, 1);
+        }
+    },
+    executeParticleRenderPass(ctx, camX) {
+        for (let i = 0; i < this.allocatedParticles.length; i++) { this.allocatedParticles[i].renderParticleElement(ctx, camX); }
+    }
+};
+
+const TranslationPlayerComponent = {
+    x: 200, y: 600, w: 54, h: 54, vy: 0, vx: 9.0, 
+    gravityScalar: 0.72, terminalVerticalImpulse: -19.5, 
+    shipThrustStrength: -0.95, shipGravity: 0.65, maxShipSpeedY: 14, 
+    ballGravityDirection: 1, ballGravityScalar: 0.85, ballTerminalY: 16,
+    isSurfaceContactGrounded: false, rotationStateAngle: 0,
+    
+    resetKinematicState() { 
+        this.x = 200; 
+        this.y = 600; 
+        this.vy = 0; 
+        this.ballGravityDirection = 1;
+        this.isSurfaceContactGrounded = false; 
+        this.rotationStateAngle = 0; 
+    },
+    executeJumpImpulse() {
+        const localGravMod = engineState.modGravityMultiplier;
+        if (engineState.currentActiveSector === "alpha" && this.isSurfaceContactGrounded) {
+            this.vy = this.terminalVerticalImpulse * Math.sqrt(localGravMod); 
+            this.isSurfaceContactGrounded = false;
+            engineState.metricsJumpsThisSession++; 
+            SoundSynthesizerNode.emitToneWaveform(300, 'triangle', 0.04, 0.07, 0.16);
+        } else if (engineState.currentActiveSector === "gamma" && this.isSurfaceContactGrounded) {
+            this.ballGravityDirection *= -1;
+            this.isSurfaceContactGrounded = false;
+            engineState.metricsJumpsThisSession++;
+            SoundSynthesizerNode.emitToneWaveform(380, 'sine', 0.03, 0.06, 0.15);
+        }
+    },
+    evaluateStepPhysics(collisionBlocks, fatalSpikes) {
+        const gMod = engineState.modGravityMultiplier;
+        const speedBase = this.vx * engineState.modSpeedMultiplier;
+
+        if (engineState.currentActiveSector === "alpha") {
+            this.x += speedBase; 
+            this.vy += this.gravityScalar * gMod; 
+            this.y += this.vy;
+            if (!this.isSurfaceContactGrounded) { 
+                this.rotationStateAngle += 0.09 * engineState.modSpeedMultiplier; 
+            } else { 
+                let targetedSnapAngle = Math.round(this.rotationStateAngle / (Math.PI / 2)) * (Math.PI / 2); 
+                this.rotationStateAngle += (targetedSnapAngle - this.rotationStateAngle) * 0.35; 
+            }
+        } else if (engineState.currentActiveSector === "beta") {
+            this.x += speedBase;
+            if (engineState.isActionKeyPressed) {
+                this.vy += this.shipThrustStrength * gMod;
+            } else {
+                this.vy += this.shipGravity * gMod;
+            }
+            if (this.vy > this.maxShipSpeedY) this.vy = this.maxShipSpeedY;
+            if (this.vy < -this.maxShipSpeedY) this.vy = -this.maxShipSpeedY;
+            
+            this.y += this.vy;
+            this.rotationStateAngle = this.vy * 0.04;
+        } else {
+            this.x += speedBase;
+            this.vy += this.ballGravityScalar * this.ballGravityDirection * gMod;
+            if (Math.abs(this.vy) > this.ballTerminalY) this.vy = this.ballTerminalY * this.ballGravityDirection;
+            this.y += this.vy;
+            this.rotationStateAngle += 0.12 * this.ballGravityDirection * engineState.modSpeedMultiplier;
+        }
+
+        // Drop custom structural color trail streamer if unlocked
+        if (Math.random() < 0.35) {
+            ParticleFXArrayPoolController.allocatedParticles.push(new EngineeringVolatilityParticle(
+                this.x + this.w/4, this.y + this.h/2, 
+                engineState.unlockedMod1 ? engineState.customTrailColor : (engineState.currentActiveSector === "alpha" ? "#00ffaa" : (engineState.currentActiveSector === "beta" ? "#ff9f43" : "#e056fd")),
+                -2 - Math.random() * 3, Math.random() * 2 - 1, 20, 5
+            ));
+        }
+
+        let isGroundedThisFrame = false; 
+        const pLeft = this.x, pRight = this.x + this.w, pTop = this.y, pBottom = this.y + this.h;
+        
+        for (let i = 0; i < collisionBlocks.length; i++) {
+            let block = collisionBlocks[i];
+            if (pRight > block.x && pLeft < block.x + block.w && pBottom > block.y && pTop < block.y + block.h) {
+                let overlapX = Math.min(pRight - block.x, block.x + block.w - pLeft); 
+                let overlapY = Math.min(pBottom - block.y, block.y + block.h - pTop);
+                
+                if (overlapY < overlapX) {
+                    if (engineState.currentActiveSector === "gamma") {
+                        if (this.ballGravityDirection === 1 && this.vy > 0 && pBottom - this.vy <= block.y + 14) {
+                            this.y = block.y - this.h;
+                            this.vy = 0;
+                            isGroundedThisFrame = true;
+                        } else if (this.ballGravityDirection === -1 && this.vy < 0 && pTop - this.vy >= block.y + block.h - 14) {
+                            this.y = block.y + block.h;
+                            this.vy = 0;
+                            isGroundedThisFrame = true;
+                        } else {
+                            SimulationCorePipelineHub.executeAnnihilationProtocol();
+                            return;
+                        }
+                    } else {
+                        if (this.vy > 0 && pBottom - this.vy <= block.y + 12) { 
+                            this.y = block.y - this.h; 
+                            this.vy = 0; 
+                            isGroundedThisFrame = true; 
+                        } else if (this.vy < 0) { 
+                            this.y = block.y + block.h; 
+                            this.vy = 0; 
+                        }
+                    }
+                } else { 
+                    SimulationCorePipelineHub.executeAnnihilationProtocol(); 
+                    return; 
+                }
+            }
+        }
+        this.isSurfaceContactGrounded = isGroundedThisFrame;
+        
+        for (let j = 0; j < fatalSpikes.length; j++) {
+            let spike = fatalSpikes[j];
+            if (pRight - 14 > spike.x && pLeft + 14 < spike.x + spike.w && pBottom > spike.y + 6 && pTop < spike.y + spike.h) { 
+                SimulationCorePipelineHub.executeAnnihilationProtocol(); 
+                return; 
+            }
+        }
+        
+        if (this.y > engineState.virtualHeight || this.y < -150) {
+            SimulationCorePipelineHub.executeAnnihilationProtocol();
+        }
+    },
+    renderRepresentation(ctx, camX) {
+        ctx.save(); 
+        ctx.translate(this.x + this.w / 2 - camX, this.y + this.h / 2); 
+        ctx.rotate(this.rotationStateAngle);
+        
+        // Pick custom fill and stroke configurations if Mod 1 unlocked
+        let currentFill = engineState.unlockedMod1 ? engineState.customFillColor : "#00ffaa";
+        let currentStroke = engineState.unlockedMod1 ? engineState.customStrokeColor : "#ffffff";
+
+        if (engineState.currentActiveSector === "alpha") {
+            ctx.fillStyle = currentFill; 
+            ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
+            ctx.strokeStyle = currentStroke; 
+            ctx.lineWidth = 3; 
+            ctx.strokeRect(-this.w / 2, -this.h / 2, this.w, this.h);
+        } else if (engineState.currentActiveSector === "beta") {
+            ctx.fillStyle = engineState.unlockedMod1 ? currentFill : "#ff9f43";
+            ctx.beginPath();
+            ctx.moveTo(-this.w / 2, -this.h / 4);
+            ctx.lineTo(this.w / 2, -this.h / 6);
+            ctx.lineTo(this.w / 3, this.h / 2);
+            ctx.lineTo(-this.w / 2, this.h / 2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = currentStroke;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.fillStyle = "#00ffaa";
+            ctx.beginPath();
+            ctx.moveTo(this.w / 8, -this.h / 8);
+            ctx.lineTo(this.w / 2, -this.h / 6);
+            ctx.lineTo(this.w / 4, this.h / 6);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = "#546e7a";
+            ctx.fillRect(-this.w / 1.6, -this.h / 6, this.w / 4, this.h / 3);
+        } else {
+            ctx.fillStyle = engineState.unlockedMod1 ? currentFill : "#e056fd";
+            ctx.beginPath();
+            ctx.arc(0, 0, this.w / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = currentStroke;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.fillStyle = currentStroke;
+            for (let angleOffset = 0; angleOffset < Math.PI * 2; angleOffset += Math.PI / 2) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(angleOffset) * (this.w / 2), Math.sin(angleOffset) * (this.w / 2));
+                ctx.arc(0, 0, this.w / 4, angleOffset, angleOffset + Math.PI / 4);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+        ctx.restore();
+    }
+};
+
+const ExplicitStaticLevelDeclarationMatrix = [
+    {
+        nodeId: 1, finishLineCoordinateX: 6200,
+        layoutBlocks: [{ x: 0, y: 800, w: 2200, h: 280 }, { x: 2500, y: 800, w: 1000, h: 280 }, { x: 3800, y: 720, w: 900, h: 360 }, { x: 5000, y: 800, w: 1500, h: 280 }],
+        layoutSpikes: [{ x: 1200, y: 750, w: 50, h: 50 }, { x: 1700, y: 750, w: 50, h: 50 }, { x: 2900, y: 750, w: 50, h: 50 }, { x: 4200, y: 670, w: 50, h: 50 }]
+    },
+    {
+        nodeId: 2, finishLineCoordinateX: 6600,
+        layoutBlocks: [{ x: 0, y: 800, w: 1800, h: 280 }, { x: 2150, y: 800, w: 1100, h: 280 }, { x: 3550, y: 800, w: 800, h: 280 }, { x: 4650, y: 700, w: 2200, h: 380 }],
+        layoutSpikes: [{ x: 1000, y: 750, w: 50, h: 50 }, { x: 2500, y: 750, w: 50, h: 50 }, { x: 3800, y: 750, w: 50, h: 50 }, { x: 5200, y: 650, w: 50, h: 50 }]
+    },
+    {
+        nodeId: 3, finishLineCoordinateX: 7000,
+        layoutBlocks: [{ x: 0, y: 800, w: 2000, h: 280 }, { x: 2350, y: 740, w: 900, h: 340 }, { x: 3600, y: 800, w: 1000, h: 280 }, { x: 4900, y: 800, w: 2500, h: 280 }],
+        layoutSpikes: [{ x: 1300, y: 750, w: 50, h: 50 }, { x: 2700, y: 690, w: 50, h: 50 }, { x: 4100, y: 750, w: 50, h: 50 }, { x: 5600, y: 750, w: 50, h: 50 }]
+    }
+];
+
+function generateProceduralLevelStructure(levelId) {
+    let segmentWidth = 1600;
+    let blocks = [{ x: 0, y: 800, w: segmentWidth + 400, h: 280 }];
+    let spikes = [];
+    let currentX = segmentWidth + 400;
+
+    if (engineState.currentActiveSector === "beta" || engineState.currentActiveSector === "gamma") {
+        blocks.push({ x: 0, y: 0, w: 25000, h: 80 });
+    }
+
+    for (let i = 0; i < 4; i++) {
+        currentX += 280 + Math.floor(Math.sin(levelId + i) * 60);
+        let segmentLen = 1000 + Math.floor(Math.cos(levelId + i) * 300);
+        let segmentHeight = 800 - Math.floor(Math.abs(Math.sin(i)) * 80);
+        
+        if (engineState.currentActiveSector === "beta") {
+            blocks.push({ x: currentX, y: segmentHeight - 320, w: 200, h: 200 });
+            blocks.push({ x: currentX + 400, y: segmentHeight - 120, w: 300, h: 80 });
+            spikes.push({ x: currentX + 500, y: segmentHeight - 170, w: 50, h: 50 });
+        } else if (engineState.currentActiveSector === "gamma") {
+            blocks.push({ x: currentX, y: segmentHeight, w: segmentLen, h: 350 });
+            blocks.push({ x: currentX + 300, y: 80, w: 400, h: 260 });
+            
+            spikes.push({ x: currentX + 150, y: segmentHeight - 50, w: 50, h: 50 });
+            spikes.push({ x: currentX + 450, y: 340, w: 50, h: 50 }); 
+        } else {
+            blocks.push({ x: currentX, y: segmentHeight, w: segmentLen, h: 350 });
+            spikes.push({ x: currentX + Math.floor(segmentLen / 2), y: segmentHeight - 50, w: 50, h: 50 });
+        }
+        currentX += segmentLen;
+    }
+    let finishX = currentX + 300;
+    blocks.push({ x: currentX, y: 800, w: 800, h: 280 });
+    return { nodeId: levelId, finishLineCoordinateX: finishX, layoutBlocks: blocks, layoutSpikes: spikes };
+}
+
+const RuntimeContextStage = { activeBlocks: [], activeSpikes: [], objectiveFinishPointX: 999999 };
+
+const SimulationCorePipelineHub = {
+    canvasRef: null, ctxRef: null, trackedCameraX: 0,
+    initializeCoreContext() {
+        this.canvasRef = document.getElementById('simulationCanvasEngine'); this.ctxRef = this.canvasRef.getContext('2d');
+        this.resizeFullscreenCanvas(); window.addEventListener('resize', () => this.resizeFullscreenCanvas());
+        EnvironmentVisualCoordinator.instantiateSubsystems(); this.establishInputBindingListeners(); AccountManager.updateInterfaceDisplays();
+        document.getElementById('cfg-key-label').innerText = engineState.jumpKeyName;
+    },
+    resizeFullscreenCanvas() { this.canvasRef.width = window.innerWidth; this.canvasRef.height = window.innerHeight; },
+    generateMatrixSelectionGrid() {
+        const grid = document.getElementById('node-matrix-render-target'); grid.innerHTML = '';
+        const title = document.getElementById('view-node-title');
+        
+        let checkProgressVal = 1;
+        if (engineState.currentActiveSector === "alpha") {
+            title.innerText = "Sector Alpha - Level Selection Matrix";
+            checkProgressVal = engineState.activeUserAccount ? (engineState.activeUserAccount.savedLevel || 1) : engineState.highestCompletedNode;
+        } else if (engineState.currentActiveSector === "beta") {
+            title.innerText = "Sector Beta - Flight Core Matrix";
+            checkProgressVal = engineState.activeUserAccount ? (engineState.activeUserAccount.savedLevelBeta || 1) : engineState.highestCompletedNodeBeta;
+        } else {
+            title.innerText = "Sector Gamma - Ball Gravity Matrix";
+            checkProgressVal = engineState.activeUserAccount ? (engineState.activeUserAccount.savedLevelGamma || 1) : engineState.highestCompletedNodeGamma;
+        }
+
+        for (let i = 1; i <= 1000; i++) {
+            const btn = document.createElement('button'); btn.className = 'node-select-btn'; btn.innerText = i.toString().padStart(3, '0');
+            
+            if (engineState.currentActiveSector === "beta") {
+                btn.style.borderColor = "#ff9f43"; btn.style.color = "#ff9f43";
+            } else if (engineState.currentActiveSector === "gamma") {
+                btn.style.borderColor = "#e056fd"; btn.style.color = "#e056fd";
+            }
+
+            if (i > checkProgressVal) { 
+                btn.disabled = true; 
+            } else { 
+                btn.addEventListener('click', () => { SoundSynthesizerNode.initializeAudioContext(); this.instantiateLevelExecutionPipeline(i); }); 
+            }
+            grid.appendChild(btn);
+        }
+    },
+    evaluateSectorLocks() {
+        const betaBtn = document.getElementById('act-sector-beta');
+        const gammaBtn = document.getElementById('act-sector-gamma');
+        const hint = document.getElementById('sector-lock-hint');
+        
+        let alphaProgress = engineState.activeUserAccount ? (engineState.activeUserAccount.savedLevel || 1) : engineState.highestCompletedNode;
+        let betaProgress = engineState.activeUserAccount ? (engineState.activeUserAccount.savedLevelBeta || 1) : engineState.highestCompletedNodeBeta;
+        
+        const currentRank = engineState.activeUserAccount ? engineState.activeUserAccount.rank : "GUEST";
+        const isStaff = currentRank === "DEVELOPER" || currentRank === "ADMIN" || currentRank === "MODERATOR";
+
+        hint.innerText = "";
+        
+        if (isStaff || alphaProgress > 250) {
+            betaBtn.disabled = false;
+        } else {
+            betaBtn.disabled = true;
+            hint.innerText = `🔒 Sector Beta needs Level 250 completed in Alpha (${251 - alphaProgress} left). `;
+        }
+
+        if (isStaff || (alphaProgress > 250 && betaProgress > 250)) {
+            gammaBtn.disabled = false;
+        } else {
+            gammaBtn.disabled = true;
+            if (alphaProgress > 250) {
+                hint.innerText = `🔒 Sector Gamma needs Level 250 completed in Beta (${251 - betaProgress} left).`;
+            }
+        }
+    },
+    establishInputBindingListeners() {
+        document.getElementById('act-main-init').addEventListener('click', () => { 
+            SoundSynthesizerNode.initializeAudioContext(); 
+            this.evaluateSectorLocks();
+            routingDispatcher(uiScreens.sector); 
+        });
+
+        // SHOP AND MOD NAVIGATION LINKS
+        document.getElementById('act-main-shop').addEventListener('click', () => { AccountManager.updateShopAndModInterfaces(); routingDispatcher(uiScreens.shop); });
+        document.getElementById('act-main-mods').addEventListener('click', () => { AccountManager.updateShopAndModInterfaces(); routingDispatcher(uiScreens.mods); });
+        document.getElementById('act-shop-back').addEventListener('click', () => routingDispatcher(uiScreens.main));
+        document.getElementById('act-mods-back').addEventListener('click', () => {
+            if (engineState.isEngineActive) { routingDispatcher(uiScreens.runtime); uiOverlays.halt.classList.add('active'); }
+            else { routingDispatcher(uiScreens.main); }
+        });
+        document.getElementById('act-halt-mods').addEventListener('click', () => { uiOverlays.halt.classList.remove('active'); routingDispatcher(uiScreens.mods); });
+        document.getElementById('act-open-customizer').addEventListener('click', () => routingDispatcher(uiScreens.customizer));
+        document.getElementById('act-customizer-back').addEventListener('click', () => routingDispatcher(uiScreens.mods));
+
+        // PURCHASING TRANSACTION SYSTEMS
+        document.getElementById('act-buy-mod1').addEventListener('click', () => {
+            let user = engineState.activeUserAccount;
+            if (user ? user.starsEarned >= 500 : engineState.guestStarsEarned >= 500) {
+                if (user) user.starsEarned -= 500; else engineState.guestStarsEarned -= 500;
+                engineState.unlockedMod1 = true; AccountManager.syncGameProgressData(0); AccountManager.updateShopAndModInterfaces();
+            } else { alert("Insufficient Stars!"); }
+        });
+        document.getElementById('act-buy-mod2').addEventListener('click', () => {
+            let user = engineState.activeUserAccount;
+            if (user ? user.moonsEarned >= 500 : engineState.guestMoonsEarned >= 500) {
+                if (user) user.moonsEarned -= 500; else engineState.guestMoonsEarned -= 500;
+                engineState.unlockedMod2 = true; AccountManager.syncGameProgressData(0); AccountManager.updateShopAndModInterfaces();
+            } else { alert("Insufficient Moons!"); }
+        });
+        document.getElementById('act-buy-mod3').addEventListener('click', () => {
+            let user = engineState.activeUserAccount;
+            if (user ? user.sunsEarned >= 500 : engineState.guestSunsEarned >= 500) {
+                if (user) user.sunsEarned -= 500; else engineState.guestSunsEarned -= 500;
+                engineState.unlockedMod3 = true; AccountManager.syncGameProgressData(0); AccountManager.updateShopAndModInterfaces();
+            } else { alert("Insufficient Suns!"); }
+        });
+
+        // SLIDER EVENTS FOR MOD SYSTEMS
+        const gravSlider = document.getElementById('mod-gravity-slider');
+        gravSlider.addEventListener('input', (e) => {
+            engineState.modGravityMultiplier = parseInt(e.target.value) / 100;
+            document.getElementById('mod-gravity-display').innerText = engineState.modGravityMultiplier.toFixed(1) + "x";
+        });
+        const speedSlider = document.getElementById('mod-speed-slider');
+        speedSlider.addEventListener('input', (e) => {
+            engineState.modSpeedMultiplier = parseInt(e.target.value) / 100;
+            document.getElementById('mod-speed-display').innerText = engineState.modSpeedMultiplier.toFixed(1) + "x";
+        });
+
+        // CUSTOMIZATION HOOKS
+        document.getElementById('picker-char-fill').addEventListener('input', (e) => engineState.customFillColor = e.target.value);
+        document.getElementById('picker-char-stroke').addEventListener('input', (e) => engineState.customStrokeColor = e.target.value);
+        document.getElementById('picker-char-trail').addEventListener('input', (e) => engineState.customTrailColor = e.target.value);
+        document.getElementById('picker-bg-hex').addEventListener('input', (e) => engineState.customBgColor = e.target.value);
+        document.getElementById('act-reset-appearance').addEventListener('click', () => {
+            engineState.customFillColor = "#00ffaa"; engineState.customStrokeColor = "#ffffff";
+            engineState.customTrailColor = "#00ffaa"; engineState.customBgColor = "#0d0f12";
+            document.getElementById('picker-char-fill').value = "#00ffaa"; document.getElementById('picker-char-stroke').value = "#ffffff";
+            document.getElementById('picker-char-trail').value = "#00ffaa"; document.getElementById('picker-bg-hex').value = "#0d0f12";
+        });
+
+        document.getElementById('act-main-config').addEventListener('click', () => { 
+            SoundSynthesizerNode.initializeAudioContext(); engineState.isConfigOpenedFromPause = false; routingDispatcher(uiScreens.config); 
+        });
+        
+        document.getElementById('act-sector-alpha').addEventListener('click', () => { 
+            engineState.currentActiveSector = "alpha"; this.generateMatrixSelectionGrid(); routingDispatcher(uiScreens.node); 
+        });
+        document.getElementById('act-sector-beta').addEventListener('click', () => { 
+            engineState.currentActiveSector = "beta"; this.generateMatrixSelectionGrid(); routingDispatcher(uiScreens.node); 
+        });
+        document.getElementById('act-sector-gamma').addEventListener('click', () => { 
+            engineState.currentActiveSector = "gamma"; this.generateMatrixSelectionGrid(); routingDispatcher(uiScreens.node); 
+        });
+
+        document.getElementById('act-sec-back').addEventListener('click', () => routingDispatcher(uiScreens.main));
+        document.getElementById('act-node-back').addEventListener('click', () => { this.evaluateSectorLocks(); routingDispatcher(uiScreens.sector); });
+        
+        document.getElementById('act-config-back').addEventListener('click', () => {
+            if (engineState.isConfigOpenedFromPause) { routingDispatcher(uiScreens.runtime); uiOverlays.halt.classList.add('active'); } 
+            else { routingDispatcher(uiScreens.main); }
+        });
+        
+        document.getElementById('act-halt-resume').addEventListener('click', () => { engineState.isEnginePaused = false; uiOverlays.halt.classList.remove('active'); });
+        document.getElementById('act-halt-config').addEventListener('click', () => {
+            SoundSynthesizerNode.initializeAudioContext(); engineState.isConfigOpenedFromPause = true; uiOverlays.halt.classList.remove('active'); routingDispatcher(uiScreens.config);
+        });
+        document.getElementById('act-halt-abort').addEventListener('click', () => { this.terminateLoopExecution(); this.generateMatrixSelectionGrid(); routingDispatcher(uiScreens.node); });
+        document.getElementById('act-success-exit').addEventListener('click', () => { this.terminateLoopExecution(); this.generateMatrixSelectionGrid(); routingDispatcher(uiScreens.node); });
+        
+        document.getElementById('act-success-forward').addEventListener('click', () => {
+            uiOverlays.success.classList.remove('active'); this.instantiateLevelExecutionPipeline(engineState.activeSelectedNode + 1);
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (engineState.isEngineActive && !engineState.isInputCapturing) {
+                const isConfigActive = uiScreens.config.classList.contains('active');
+                const isModsActive = uiScreens.mods.classList.contains('active') || uiScreens.customizer.classList.contains('active');
+                
+                if (e.code === "Escape") { 
+                    e.preventDefault();
+                    if (isConfigActive && engineState.isConfigOpenedFromPause) {
+                        routingDispatcher(uiScreens.runtime); uiOverlays.halt.classList.add('active');
+                    } else if (isModsActive) {
+                        routingDispatcher(uiScreens.runtime); uiOverlays.halt.classList.add('active');
+                    } else if (!isConfigActive) {
+                        engineState.isEnginePaused = !engineState.isEnginePaused; 
+                        if (engineState.isEnginePaused) uiOverlays.halt.classList.add('active'); else uiOverlays.halt.classList.remove('active');
+                    }
+                    return;
+                }
+
+                if (!engineState.isEnginePaused && !isConfigActive && !isModsActive && e.code === engineState.jumpKeyCodeValue) { 
+                    e.preventDefault(); 
+                    engineState.isActionKeyPressed = true;
+                    TranslationPlayerComponent.executeJumpImpulse(); 
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === engineState.jumpKeyCodeValue) { engineState.isActionKeyPressed = false; }
+        });
+
+        document.getElementById('act-rebind-trigger').addEventListener('click', () => {
+            engineState.isInputCapturing = true; document.getElementById('act-rebind-trigger').innerText = "Press any key...";
+            const MathHook = (hookEvent) => {
+                if (hookEvent.code !== "Escape") {
+                    engineState.jumpKeyName = hookEvent.key === " " ? "Space" : hookEvent.key; engineState.jumpKeyCodeValue = hookEvent.code;
+                    try { localStorage.setItem('sj_save_key', engineState.jumpKeyName); localStorage.setItem('sj_save_code', engineState.jumpKeyCodeValue); } catch(err){}
+                    document.getElementById('cfg-key-label').innerText = engineState.jumpKeyName;
+                }
+                document.getElementById('act-rebind-trigger').innerText = "Change Key Bind"; engineState.isInputCapturing = false; window.removeEventListener('keydown', MathHook);
+            };
+            window.addEventListener('keydown', MathHook);
+        });
+
+        document.getElementById('cfg-autologin-switch').addEventListener('change', (e) => {
+            engineState.autoLoginEnabled = e.target.checked;
+            try { 
+                localStorage.setItem('sj_save_autologin', engineState.autoLoginEnabled);
+                if (engineState.autoLoginEnabled && engineState.activeUserAccount) {
+                    localStorage.setItem('sj_active_session_user', engineState.activeUserAccount.username);
+                } else {
+                    localStorage.removeItem('sj_active_session_user');
+                }
+            } catch(err){}
+        });
+
+        const volSlider = document.getElementById('cfg-volume-slider');
+        const volDisplay = document.getElementById('cfg-volume-value');
+        volSlider.addEventListener('input', (e) => {
+            const rawVal = parseInt(e.target.value); engineState.masterVolume = rawVal / 100; volDisplay.innerText = `${rawVal}%`;
+            try { localStorage.setItem('sj_save_volume', engineState.masterVolume); } catch(err){}
+        });
+
+        document.getElementById('act-stats-board-trigger').addEventListener('click', () => {
+            SoundSynthesizerNode.initializeAudioContext();
+            for (const key in uiScreens) { if(uiScreens[key].classList.contains('active')) engineState.previousScreenBeforeOverlay = uiScreens[key]; }
+            AccountManager.populateStatsViewDashboard(); routingDispatcher(uiScreens.gameStats);
+        });
+        document.getElementById('act-stats-back').addEventListener('click', () => { routingDispatcher(engineState.previousScreenBeforeOverlay || uiScreens.main); });
+
+        document.getElementById('act-console-panel-trigger').addEventListener('click', () => {
+            SoundSynthesizerNode.initializeAudioContext();
+            for (const key in uiScreens) { if(uiScreens[key].classList.contains('active')) engineState.previousScreenBeforeOverlay = uiScreens[key]; }
+            document.getElementById('dev-console-input-box').value = "";
+            document.getElementById('dev-console-log-target').innerText = "Terminal ready. \nTry: /setnode [username] [sector] [level]\nOr: /rank [username] [rank]";
+            routingDispatcher(uiScreens.devPanel);
+        });
+        document.getElementById('act-console-close').addEventListener('click', () => { routingDispatcher(engineState.previousScreenBeforeOverlay || uiScreens.main); });
+
+        document.getElementById('act-console-execute').addEventListener('click', () => {
+            const cmdText = document.getElementById('dev-console-input-box').value.trim();
+            const consoleLog = document.getElementById('dev-console-log-target');
+            if(!cmdText) return;
+
+            const tokens = cmdText.split(/\s+/);
+            const baseCommand = tokens[0].toLowerCase();
+            const cleanTokens = tokens.filter(t => t.trim() !== "");
+
+            if (baseCommand === "/rank") {
+                if (cleanTokens.length >= 3) {
+                    const targetUser = cleanTokens[1];
+                    const rawRank = cleanTokens[2].toUpperCase();
+                    
+                    const permittedRanks = ["PLAYER", "MODERATOR", "ADMIN", "DEVELOPER"];
+                    if (!permittedRanks.includes(rawRank)) {
+                        consoleLog.innerText = `❌ SYNTAX ERROR: Unknown Rank requested.\nValid selection tokens: PLAYER, MODERATOR, ADMIN, DEVELOPER`;
+                        return;
+                    }
+                    
+                    const db = AccountManager.getAllUsers();
+                    if (db[targetUser]) {
+                        db[targetUser].rank = rawRank;
+                        AccountManager.saveAllUsers(db);
+                        
+                        // If updating current active session profile
+                        if (engineState.activeUserAccount && engineState.activeUserAccount.username === targetUser) {
+                            engineState.activeUserAccount.rank = rawRank;
+                        }
+                        
+                        AccountManager.updateInterfaceDisplays();
+                        consoleLog.innerText = `🟢 SUCCESS: Profile matrix rank for [${targetUser}] forced to state [${rawRank}].`;
+                    } else {
+                        consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside architecture memory structure.`;
+                    }
+                } else {
+                    consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/rank <username> <PLAYER/MODERATOR/ADMIN/DEVELOPER>'";
+                }
+            }
+            else if (baseCommand === "/unlockall") {
+                if (cleanTokens.length >= 2) {
+                    const targetUser = cleanTokens[1]; const db = AccountManager.getAllUsers();
+                    if (db[targetUser]) {
+                        // Level Matrix unlocks
+                        db[targetUser].savedLevel = 1000; 
+                        db[targetUser].savedLevelBeta = 1000; 
+                        db[targetUser].savedLevelGamma = 1000;
+                        
+                        // Give large amount of resources to easily check shop configurations
+                        db[targetUser].starsEarned = (db[targetUser].starsEarned || 0) + 100000;
+                        db[targetUser].moonsEarned = (db[targetUser].moonsEarned || 0) + 100000;
+                        db[targetUser].sunsEarned = (db[targetUser].sunsEarned || 0) + 100000;
+                        
+                        // Force structural mod flag configurations open immediately
+                        db[targetUser].unlockedMod1 = true;
+                        db[targetUser].unlockedMod2 = true;
+                        db[targetUser].unlockedMod3 = true;
+                        
+                        AccountManager.saveAllUsers(db);
+
+                        if (engineState.activeUserAccount && engineState.activeUserAccount.username === targetUser) {
+                            engineState.activeUserAccount.savedLevel = 1000; 
+                            engineState.activeUserAccount.savedLevelBeta = 1000; 
+                            engineState.activeUserAccount.savedLevelGamma = 1000;
+                            
+                            engineState.highestCompletedNode = 1000; 
+                            engineState.highestCompletedNodeBeta = 1000; 
+                            engineState.highestCompletedNodeGamma = 1000;
+                            
+                            engineState.unlockedMod1 = true;
+                            engineState.unlockedMod2 = true;
+                            engineState.unlockedMod3 = true;
+                            
+                            this.generateMatrixSelectionGrid();
+                        }
+                        
+                        AccountManager.updateShopAndModInterfaces();
+                        consoleLog.innerText = `🔓 SUCCESS: Full matrix override complete for [${targetUser}].\n• All 1000 Levels Unlocked\n• Granted 100,000 Stars, Moons, Suns\n• All Custom Mod Sliders Unlocked!`;
+                    } else {
+                        consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside local memory architecture.`;
+                    }
+                } else {
+                    // Fallback for guest unlock optimization
+                    engineState.highestCompletedNode = 1000;
+                    engineState.highestCompletedNodeBeta = 1000;
+                    engineState.highestCompletedNodeGamma = 1000;
+                    engineState.guestStarsEarned += 100000;
+                    engineState.guestMoonsEarned += 100000;
+                    engineState.guestSunsEarned += 100000;
+                    engineState.unlockedMod1 = true;
+                    engineState.unlockedMod2 = true;
+                    engineState.unlockedMod3 = true;
+                    this.generateMatrixSelectionGrid();
+                    AccountManager.updateShopAndModInterfaces();
+                    consoleLog.innerText = `🔓 SUCCESS: Guest session forced open. Levels, currencies, and modification modules fully unlocked.`;
+                }
+            }
+            else if (baseCommand === "/setnode") {
+                if (cleanTokens.length >= 4) {
+                    const targetUser = cleanTokens[1];
+                    const sector = cleanTokens[2].toLowerCase();
+                    const value = parseInt(cleanTokens[3]);
+                    
+                    if (isNaN(value) || value < 1 || value > 1000) {
+                        consoleLog.innerText = "❌ SYNTAX ERROR: Level number must be an integer between 1 and 1000.";
+                        return;
+                    }
+                    if (sector !== "alpha" && sector !== "beta" && sector !== "gamma") {
+                        consoleLog.innerText = "❌ SYNTAX ERROR: Sector must be 'alpha', 'beta', or 'gamma'.";
+                        return;
+                    }
+                    
+                    const db = AccountManager.getAllUsers();
+                    if (db[targetUser]) {
+                        if (sector === "alpha") db[targetUser].savedLevel = value;
+                        else if (sector === "beta") db[targetUser].savedLevelBeta = value;
+                        else if (sector === "gamma") db[targetUser].savedLevelGamma = value;
+                        
+                        AccountManager.saveAllUsers(db);
+                        if (engineState.activeUserAccount && engineState.activeUserAccount.username === targetUser) {
+                            if (sector === "alpha") engineState.highestCompletedNode = value;
+                            else if (sector === "beta") engineState.highestCompletedNodeBeta = value;
+                            else if (sector === "gamma") engineState.highestCompletedNodeGamma = value;
+                            this.generateMatrixSelectionGrid();
+                        }
+                        consoleLog.innerText = `🟢 SUCCESS: Progress forced to level ${value} in Sector ${sector.toUpperCase()} for user [${targetUser}].`;
+                    } else {
+                        consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside architecture memory.`;
+                    }
+                } else {
+                    consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/setnode <username> <sector> <level_number>'";
+                }
+            }
+            else if (baseCommand === "/give") {
+                if (cleanTokens.length >= 4) {
+                    const type = cleanTokens[cleanTokens.length - 1].toLowerCase(); const targetUser = cleanTokens[1]; const amount = parseInt(cleanTokens[cleanTokens.length - 2]);
+                    if (isNaN(amount)) { consoleLog.innerText = "❌ SYNTAX ERROR: Amount must be an integer."; return; }
+                    
+                    const db = AccountManager.getAllUsers();
+                    if (db[targetUser]) {
+                        if (type === "stars") { db[targetUser].starsEarned = (db[targetUser].starsEarned || 0) + amount; } 
+                        else if (type === "moons") { db[targetUser].moonsEarned = (db[targetUser].moonsEarned || 0) + amount; } 
+                        else if (type === "suns") { db[targetUser].sunsEarned = (db[targetUser].sunsEarned || 0) + amount; } 
+                        else { consoleLog.innerText = "❌ SYNTAX ERROR: Expected resource token type: 'stars', 'moons', or 'suns'."; return; }
+                        AccountManager.saveAllUsers(db);
+                        if(engineState.activeUserAccount && engineState.activeUserAccount.username === targetUser) {
+                            engineState.activeUserAccount.starsEarned = db[targetUser].starsEarned; engineState.activeUserAccount.moonsEarned = db[targetUser].moonsEarned; engineState.activeUserAccount.sunsEarned = db[targetUser].sunsEarned;
+                        } else {
+                            if (type === "stars") engineState.guestStarsEarned += amount;
+                            else if (type === "moons") engineState.guestMoonsEarned += amount;
+                            else if (type === "suns") engineState.guestSunsEarned += amount;
+                        }
+                        AccountManager.updateShopAndModInterfaces();
+                        consoleLog.innerText = `🟢 SUCCESS: Allocated ${amount} values to [${targetUser}].`;
+                    } else {
+                        consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside memory architecture.`;
+                    }
+                } else {
+                    consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/give <username> <amount> stars/moons/suns'";
+                }
+            } 
+            else if (baseCommand === "/stats") {
+                if (cleanTokens.length >= 2) {
+                    const targetUser = cleanTokens[1]; const db = AccountManager.getAllUsers();
+                    if (db[targetUser]) {
+                        const tgt = db[targetUser];
+                        consoleLog.innerText = `📊 CORE ANALYSIS DATA [${tgt.username}]:\n• Rank: ${tgt.rank || "PLAYER"}\n• Levels Beaten: ${tgt.levelsBeaten || 0}\n• Stars: ${tgt.starsEarned || 0}\n• Moons: ${tgt.moonsEarned || 0}\n• Suns: ${tgt.sunsEarned || 0}\n• Lifetime Deaths: ${tgt.totalDeaths || 0}`;
+                    } else {
+                        consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside memory matrix cells.`;
+                    }
+                } else {
+                    consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/stats <username>'";
+                }
+            } else {
+                consoleLog.innerText = `❌ UNKNOWN COMMAND PARADE: System syntax string '${baseCommand}' is unrecognizable.`;
+            }
+        });
+
+        document.getElementById('act-account-menu-trigger').addEventListener('click', () => { SoundSynthesizerNode.initializeAudioContext(); if (engineState.activeUserAccount) { routingDispatcher(uiScreens.accountAuth); } else { routingDispatcher(uiScreens.accountAnon); } });
+        document.getElementById('act-anon-back').addEventListener('click', () => routingDispatcher(uiScreens.main));
+        document.getElementById('act-signup-back').addEventListener('click', () => routingDispatcher(uiScreens.accountAnon));
+        document.getElementById('act-login-back').addEventListener('click', () => routingDispatcher(uiScreens.accountAnon));
+        document.getElementById('act-auth-back').addEventListener('click', () => routingDispatcher(uiScreens.main));
+        document.getElementById('act-delete-verify-back').addEventListener('click', () => routingDispatcher(uiScreens.accountAuth));
+        document.getElementById('act-go-signup').addEventListener('click', () => { document.getElementById('signup-username').value = ""; document.getElementById('signup-password').value = ""; document.getElementById('signup-error-box').innerText = ""; routingDispatcher(uiScreens.accountSignup); });
+        document.getElementById('act-go-login').addEventListener('click', () => { document.getElementById('login-username').value = ""; document.getElementById('login-password').value = ""; document.getElementById('login-error-box').innerText = ""; routingDispatcher(uiScreens.accountLogin); });
+        document.getElementById('act-user-delete-prompt').addEventListener('click', () => { document.getElementById('delete-password-confirm').value = ""; document.getElementById('delete-error-box').innerText = ""; routingDispatcher(uiScreens.accountDeleteVerify); });
+
+        document.getElementById('act-submit-signup').addEventListener('click', () => {
+            const user = document.getElementById('signup-username').value.trim(); const pass = document.getElementById('signup-password').value; const errorBox = document.getElementById('signup-error-box');
+            if (!user || !pass) { errorBox.innerText = "Fields cannot be empty!"; return; }
+            if (pass.length > 6) { errorBox.innerText = "Password cannot exceed 6 digits!"; return; }
+            const db = AccountManager.getAllUsers(); if (db[user]) { errorBox.innerText = "Username already exists!"; return; }
+            
+            db[user] = { username: user, password: pass, rank: "PLAYER", savedLevel: 1, savedLevelBeta: 1, savedLevelGamma: 1, levelsBeaten: 0, starsEarned: 0, moonsEarned: 0, sunsEarned: 0, totalDeaths: 0, unlockedMod1:false, unlockedMod2:false, unlockedMod3:false }; 
+            AccountManager.saveAllUsers(db); engineState.activeUserAccount = db[user]; AccountManager.updateInterfaceDisplays(); routingDispatcher(uiScreens.main);
+        });
+
+        document.getElementById('act-submit-dev-signup').addEventListener('click', () => {
+            const user = document.getElementById('signup-username').value.trim(); const pass = document.getElementById('signup-password').value; const errorBox = document.getElementById('signup-error-box');
+            if (!user || !pass) { errorBox.innerText = "Fields cannot be empty!"; return; }
+            const devVerificationToken = prompt("ENTER SYSTEM OVERRIDE SECURITY CREDENTIAL KEY CODE:");
+            if (devVerificationToken !== "110223") { alert("❌ OVERRIDE FAILURE."); return; }
+
+            const db = AccountManager.getAllUsers(); if (db[user]) { errorBox.innerText = "Username already exists!"; return; }
+            db[user] = { username: user, password: pass, rank: "DEVELOPER", savedLevel: 1, savedLevelBeta: 1, savedLevelGamma: 1, levelsBeaten: 0, starsEarned: 0, moonsEarned: 0, sunsEarned: 0, totalDeaths: 0, unlockedMod1:true, unlockedMod2:true, unlockedMod3:true }; 
+            AccountManager.saveAllUsers(db); engineState.activeUserAccount = db[user]; AccountManager.updateInterfaceDisplays(); routingDispatcher(uiScreens.main);
+        });
+
+        document.getElementById('act-submit-login').addEventListener('click', () => {
+            const user = document.getElementById('login-username').value.trim(); const pass = document.getElementById('login-password').value; const errorBox = document.getElementById('login-error-box');
+            const db = AccountManager.getAllUsers(); const account = db[user];
+            if (!account || account.password !== pass) { errorBox.innerText = "Invalid credentials!"; return; }
+            engineState.activeUserAccount = account; AccountManager.updateInterfaceDisplays(); routingDispatcher(uiScreens.main);
+        });
+
+        document.getElementById('act-user-logout').addEventListener('click', () => { 
+            engineState.activeUserAccount = null; try { localStorage.removeItem('sj_active_session_user'); } catch(e){}
+            engineState.unlockedMod1 = false; engineState.unlockedMod2 = false; engineState.unlockedMod3 = false;
+            AccountManager.updateInterfaceDisplays(); routingDispatcher(uiScreens.main); 
+        });
+        
+        document.getElementById('act-submit-delete-confirm').addEventListener('click', () => {
+            const passConfirm = document.getElementById('delete-password-confirm').value; const errorBox = document.getElementById('delete-error-box');
+            if (passConfirm !== engineState.activeUserAccount.password) { errorBox.innerText = "Incorrect confirm password!"; return; }
+            const db = AccountManager.getAllUsers(); delete db[engineState.activeUserAccount.username]; AccountManager.saveAllUsers(db);
+            engineState.activeUserAccount = null; try { localStorage.removeItem('sj_active_session_user'); } catch(e){}
+            AccountManager.updateInterfaceDisplays(); routingDispatcher(uiScreens.main);
+        });
+    },
+    instantiateLevelExecutionPipeline(nodeIdValue) {
+        this.terminateLoopExecution();
+        engineState.activeSelectedNode = nodeIdValue;
+        engineState.isEnginePaused = false;
+        engineState.metricsJumpsThisSession = 0;
+        engineState.isActionKeyPressed = false;
+        engineState.isEngineActive = true;
+        engineState.isConfigOpenedFromPause = false;
+        uiOverlays.halt.classList.remove('active'); uiOverlays.success.classList.remove('active');
+        routingDispatcher(uiScreens.runtime);
+        TranslationPlayerComponent.resetKinematicState(); ParticleFXArrayPoolController.allocatedParticles = [];
+
+        let activeLevelData = ExplicitStaticLevelDeclarationMatrix[nodeIdValue - 1];
+        if (!activeLevelData || engineState.currentActiveSector !== "alpha") {
+            activeLevelData = generateProceduralLevelStructure(nodeIdValue);
+        }
+
+        RuntimeContextStage.activeBlocks = activeLevelData.layoutBlocks;
+        RuntimeContextStage.activeSpikes = activeLevelData.layoutSpikes;
+        RuntimeContextStage.objectiveFinishPointX = activeLevelData.finishLineCoordinateX;
+        this.trackedCameraX = 0; engineState.animationLoopReference = requestAnimationFrame(() => this.engineClockPulse());
+    },
+    terminateLoopExecution() { engineState.isEngineActive = false; if (engineState.animationLoopReference) { cancelAnimationFrame(engineState.animationLoopReference); engineState.animationLoopReference = null; } },
+    executeAnnihilationProtocol() {
+        this.terminateLoopExecution(); engineState.metricsDeathsThisSession++;
+        AccountManager.syncGameProgressData(0, true);
+        if (!engineState.activeUserAccount) engineState.guestLifetimeDeaths++;
+
+        SoundSynthesizerNode.emitToneWaveform(120, 'sawtooth', 0.08, 0.22, 0.28);
+        ParticleFXArrayPoolController.triggerExplosionEmanation(TranslationPlayerComponent.x + 27, TranslationPlayerComponent.y + 27, engineState.currentActiveSector === "alpha" ? "#00ffaa" : (engineState.currentActiveSector === "beta" ? "#ff9f43" : "#e056fd"), 50);
+        let crashAnimationLoop = () => {
+            this.ctxRef.fillStyle = engineState.unlockedMod1 ? engineState.customBgColor : "#0d0f12"; this.ctxRef.fillRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+            this.ctxRef.save(); let matrixScaleFactor = this.canvasRef.height / engineState.virtualHeight; this.ctxRef.scale(matrixScaleFactor, matrixScaleFactor);
+            EnvironmentVisualCoordinator.executeRenderPass(this.ctxRef, this.trackedCameraX); this.renderStaticGeometryElements();
+            ParticleFXArrayPoolController.updateParticleArrayStates(); ParticleFXArrayPoolController.executeParticleRenderPass(this.ctxRef, this.trackedCameraX);
+            this.ctxRef.restore();
+            if (ParticleFXArrayPoolController.allocatedParticles.length > 0) { requestAnimationFrame(crashAnimationLoop); } 
+            else { this.instantiateLevelExecutionPipeline(engineState.activeSelectedNode); }
+        };
+        requestAnimationFrame(crashAnimationLoop);
+    },
+    executeVictorySequence() {
+        this.terminateLoopExecution(); SoundSynthesizerNode.emitToneWaveform(600, 'sine', 0.08, 0.12, 0.18);
+        
+        let nextLevelIndex = engineState.activeSelectedNode + 1;
+        let highestLabelCheck = engineState.highestCompletedNode;
+        if (engineState.currentActiveSector === "beta") highestLabelCheck = engineState.highestCompletedNodeBeta;
+        if (engineState.currentActiveSector === "gamma") highestLabelCheck = engineState.highestCompletedNodeGamma;
+
+        const winHeadline = document.getElementById('success-screen-headline');
+        
+        if (engineState.currentActiveSector === "beta") {
+            winHeadline.innerText = "YOU EARNED A MOON! 🌙"; winHeadline.style.color = "#00ccff";
+        } else if (engineState.currentActiveSector === "gamma") {
+            winHeadline.innerText = "YOU EARNED A SUN! ☀️"; winHeadline.style.color = "#ff9f43";
+        } else {
+            winHeadline.innerText = "LEVEL COMPLETED! ⭐️"; winHeadline.style.color = "#00ffaa";
+        }
+
+        if (nextLevelIndex > highestLabelCheck) {
+            AccountManager.syncGameProgressData(nextLevelIndex);
+            if (!engineState.activeUserAccount) {
+                engineState.guestLevelsBeaten++;
+                if (engineState.currentActiveSector === "alpha") {
+                    engineState.guestStarsEarned++; engineState.highestCompletedNode = nextLevelIndex;
+                } else if (engineState.currentActiveSector === "beta") {
+                    engineState.guestMoonsEarned++; engineState.highestCompletedNodeBeta = nextLevelIndex;
+                } else {
+                    engineState.guestSunsEarned++; engineState.highestCompletedNodeGamma = nextLevelIndex;
+                }
+            }
+        }
+        document.getElementById('cfg-telemetry-dump').innerText = `Actions Performed: ${engineState.metricsJumpsThisSession} | Deaths: ${engineState.metricsDeathsThisSession}`;
+        uiOverlays.success.classList.add('active');
+    },
+    engineClockPulse() {
+        if (!engineState.isEngineActive) return;
+        
+        const isConfigActive = uiScreens.config.classList.contains('active');
+        const isModsActive = uiScreens.mods.classList.contains('active') || uiScreens.customizer.classList.contains('active');
+        if (!engineState.isEnginePaused && !isConfigActive && !isModsActive) {
+            TranslationPlayerComponent.evaluateStepPhysics(RuntimeContextStage.activeBlocks, RuntimeContextStage.activeSpikes);
+            if (!engineState.isEngineActive) return;
+            ParticleFXArrayPoolController.updateParticleArrayStates();
+            let cameraTargetX = TranslationPlayerComponent.x - 400; this.trackedCameraX += (cameraTargetX - this.trackedCameraX) * 0.14;
+            if (TranslationPlayerComponent.x >= RuntimeContextStage.objectiveFinishPointX) { this.executeVictorySequence(); return; }
+        }
+        this.executePipelineRenderRefresh(); engineState.animationLoopReference = requestAnimationFrame(() => this.engineClockPulse());
+    },
+    renderStaticGeometryElements() {
+        this.ctxRef.fillStyle = "#1e2530"; 
+        this.ctxRef.strokeStyle = engineState.currentActiveSector === "alpha" ? "#00ffaa" : (engineState.currentActiveSector === "beta" ? "#ff9f43" : "#e056fd"); 
+        this.ctxRef.lineWidth = 3;
+        for (let i = 0; i < RuntimeContextStage.activeBlocks.length; i++) {
+            let block = RuntimeContextStage.activeBlocks[i]; this.ctxRef.fillRect(block.x - this.trackedCameraX, block.y, block.w, block.h); this.ctxRef.strokeRect(block.x - this.trackedCameraX, block.y, block.w, block.h);
+        }
+        this.ctxRef.fillStyle = "#ff0055";
+        for (let j = 0; j < RuntimeContextStage.activeSpikes.length; j++) {
+            let spike = RuntimeContextStage.activeSpikes[j]; this.ctxRef.beginPath(); this.ctxRef.moveTo(spike.x - this.trackedCameraX, spike.y + spike.h); this.ctxRef.lineTo(spike.x + spike.w / 2 - this.trackedCameraX, spike.y); this.ctxRef.lineTo(spike.x + spike.w - this.trackedCameraX, spike.y + spike.h); this.ctxRef.closePath(); this.ctxRef.fill();
+        }
+        this.ctxRef.fillStyle = engineState.currentActiveSector === "alpha" ? "#00ffaa" : (engineState.currentActiveSector === "beta" ? "#00ccff" : "#e056fd"); 
+        this.ctxRef.fillRect(RuntimeContextStage.objectiveFinishPointX - this.trackedCameraX, 0, 8, engineState.virtualHeight);
+    },
+    executePipelineRenderRefresh() {
+        this.ctxRef.fillStyle = engineState.unlockedMod1 ? engineState.customBgColor : "#0d0f12"; this.ctxRef.fillRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+        this.ctxRef.save(); let matrixScaleFactor = this.canvasRef.height / engineState.virtualHeight; this.ctxRef.scale(matrixScaleFactor, matrixScaleFactor);
+        EnvironmentVisualCoordinator.executeRenderPass(this.ctxRef, this.trackedCameraX); this.renderStaticGeometryElements();
+        ParticleFXArrayPoolController.executeParticleRenderPass(this.ctxRef, this.trackedCameraX); TranslationPlayerComponent.renderRepresentation(this.ctxRef, this.trackedCameraX);
+        this.ctxRef.restore();
+        
+        this.ctxRef.fillStyle = "rgba(13, 15, 18, 0.85)"; this.ctxRef.fillRect(0, 0, this.canvasRef.width, 60);
+        this.ctxRef.fillStyle = "#cfd8dc"; this.ctxRef.font = "bold 18px sans-serif";
+        this.ctxRef.fillText(`SECTOR: ${engineState.currentActiveSector.toUpperCase()}`, 40, 38);
+        this.ctxRef.fillText(`LEVEL: ${engineState.activeSelectedNode.toString().padStart(3, '0')}`, 300, 38);
+        this.ctxRef.fillText(`DEATHS: ${engineState.metricsDeathsThisSession}`, 560, 38);
+    }
+};
+
+const uiScreens = {
+    main: document.getElementById('view-main'), shop: document.getElementById('view-shop'), mods: document.getElementById('view-mods'), customizer: document.getElementById('view-customizer'), sector: document.getElementById('view-sector'), node: document.getElementById('view-node'), config: document.getElementById('view-config'), runtime: document.getElementById('view-runtime'),
+    gameStats: document.getElementById('view-game-stats'), devPanel: document.getElementById('view-developer-panel'),
+    accountAnon: document.getElementById('view-account-anonymous'), accountSignup: document.getElementById('view-account-signup'), accountLogin: document.getElementById('view-account-login'), accountAuth: document.getElementById('view-account-authenticated'), accountDeleteVerify: document.getElementById('view-account-delete-verify')
+};
+const uiOverlays = { halt: document.getElementById('view-halt-overlay'), success: document.getElementById('view-success-overlay') };
+
+function routingDispatcher(targetScreen) {
+    Object.values(uiScreens).forEach(screen => screen.classList.remove('active')); targetScreen.classList.add('active');
+    const accountWrapper = document.getElementById('main-menu-account-anchor');
+    
+    if (targetScreen !== uiScreens.runtime && targetScreen !== uiScreens.devPanel && targetScreen !== uiScreens.config && targetScreen !== uiScreens.mods && targetScreen !== uiScreens.customizer) {
+        accountWrapper.style.display = "flex";
+    } else if (targetScreen === uiScreens.config && !engineState.isConfigOpenedFromPause) {
+        accountWrapper.style.display = "flex";
+    } else {
+        accountWrapper.style.display = "none";
+    }
+}
+
+SimulationCorePipelineHub.initializeCoreContext();
+</script>
+</body>
+</html>
