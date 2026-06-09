@@ -559,8 +559,23 @@
         <h2>Account Options</h2>
         <p style="margin-bottom: 30px; color:#b0bec5;">Logged in profile details management cell.</p>
         <button id="act-user-logout">Log Out</button>
+        <button id="act-user-wipe-prompt" style="border-color: #ff9f43; color: #ff9f43;">Wipe Data</button>
         <button id="act-user-delete-prompt" style="border-color: #ff0055; color: #ff0055;">Delete Account</button>
         <button id="act-auth-back" class="back-layout-btn">Close</button>
+    </div>
+
+    <div id="view-account-wipe-verify" class="screen">
+        <h2 style="color: #ff9f43;">Confirm Profile Wipe</h2>
+        <p style="margin-bottom: 20px; color:#b0bec5; text-align: center; width: 500px; line-height: 1.5;">
+            ⚠️ <strong>WARNING:</strong> This action will permanently erase all your level progression, collected stats, earned stars/moons/suns, and unlocked shop modifications from this account. This cannot be undone!
+        </p>
+        <div class="config-box" style="width: 400px; padding: 25px;">
+            <p style="margin-bottom: 15px; font-size: 0.95rem;">Are you completely sure you want to proceed?</p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button id="act-submit-wipe-confirm" style="margin:0; padding:12px; min-width: auto; flex: 1; background:#ff9f43; border-color:#ff9f43; color:#0d0f12;">Yes, Wipe Everything</button>
+                <button id="act-wipe-cancel" style="margin:0; padding:12px; min-width: auto; flex: 1; border-color:#546e7a; color:#546e7a;">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <div id="view-account-delete-verify" class="screen">
@@ -862,7 +877,6 @@ class MatrixBackgroundProjection {
         }
     }
     renderLayer(ctx, camX) {
-        // Enforce background customization limit rule
         ctx.fillStyle = engineState.unlockedMod1 ? engineState.customBgColor : this.color; 
         ctx.beginPath();
         let scrollOffset = camX * this.ratio; ctx.moveTo(0, engineState.virtualHeight);
@@ -942,7 +956,6 @@ const TranslationPlayerComponent = {
         this.rotationStateAngle = 0; 
     },
     executeJumpImpulse() {
-        // Enforce Mod 2 constraint lock fallbacks directly inside structural physics handlers
         const localGravMod = engineState.unlockedMod2 ? engineState.modGravityMultiplier : 1.0;
         if (engineState.currentActiveSector === "alpha" && this.isSurfaceContactGrounded) {
             this.vy = this.terminalVerticalImpulse * Math.sqrt(localGravMod); 
@@ -957,7 +970,6 @@ const TranslationPlayerComponent = {
         }
     },
     evaluateStepPhysics(collisionBlocks, fatalSpikes) {
-        // Enforce lock parameters: evaluate fallback defaults if runtime items are missing
         const gMod = engineState.unlockedMod2 ? engineState.modGravityMultiplier : 1.0;
         const speedBase = this.vx * (engineState.unlockedMod3 ? engineState.modSpeedMultiplier : 1.0);
 
@@ -991,7 +1003,6 @@ const TranslationPlayerComponent = {
             this.rotationStateAngle += 0.12 * this.ballGravityDirection * (engineState.unlockedMod3 ? engineState.modSpeedMultiplier : 1.0);
         }
 
-        // Drop custom structural color trail streamer if unlocked
         if (Math.random() < 0.35) {
             ParticleFXArrayPoolController.allocatedParticles.push(new EngineeringVolatilityParticle(
                 this.x + this.w/4, this.y + this.h/2, 
@@ -1058,7 +1069,6 @@ const TranslationPlayerComponent = {
         ctx.translate(this.x + this.w / 2 - camX, this.y + this.h / 2); 
         ctx.rotate(this.rotationStateAngle);
         
-        // Pick custom fill and stroke configurations if Mod 1 unlocked
         let currentFill = engineState.unlockedMod1 ? engineState.customFillColor : "#00ffaa";
         let currentStroke = engineState.unlockedMod1 ? engineState.customStrokeColor : "#ffffff";
 
@@ -1248,7 +1258,6 @@ const SimulationCorePipelineHub = {
             routingDispatcher(uiScreens.sector); 
         });
 
-        // SHOP AND MOD NAVIGATION LINKS
         document.getElementById('act-main-shop').addEventListener('click', () => { AccountManager.updateShopAndModInterfaces(); routingDispatcher(uiScreens.shop); });
         document.getElementById('act-main-mods').addEventListener('click', () => { AccountManager.updateShopAndModInterfaces(); routingDispatcher(uiScreens.mods); });
         document.getElementById('act-shop-back').addEventListener('click', () => routingDispatcher(uiScreens.main));
@@ -1258,17 +1267,11 @@ const SimulationCorePipelineHub = {
         });
         document.getElementById('act-halt-mods').addEventListener('click', () => { uiOverlays.halt.classList.remove('active'); routingDispatcher(uiScreens.mods); });
         
-        // Prevent manual menu routing to customizer if not unlocked
         document.getElementById('act-open-customizer').addEventListener('click', () => {
-            if (engineState.unlockedMod1) {
-                routingDispatcher(uiScreens.customizer);
-            } else {
-                alert("Mod 1 Locked!");
-            }
+            if (engineState.unlockedMod1) { routingDispatcher(uiScreens.customizer); }
         });
         document.getElementById('act-customizer-back').addEventListener('click', () => routingDispatcher(uiScreens.mods));
 
-        // PURCHASING TRANSACTION SYSTEMS
         document.getElementById('act-buy-mod1').addEventListener('click', () => {
             let user = engineState.activeUserAccount;
             if (user ? user.starsEarned >= 500 : engineState.guestStarsEarned >= 500) {
@@ -1291,16 +1294,13 @@ const SimulationCorePipelineHub = {
             } else { alert("Insufficient Suns!"); }
         });
 
-        // SLIDER EVENTS FOR MOD SYSTEMS (Enforced with unlocking checks)
         const gravSlider = document.getElementById('mod-gravity-slider');
         gravSlider.addEventListener('input', (e) => {
             if (engineState.unlockedMod2) {
                 engineState.modGravityMultiplier = parseInt(e.target.value) / 100;
                 document.getElementById('mod-gravity-display').innerText = engineState.modGravityMultiplier.toFixed(1) + "x";
             } else {
-                engineState.modGravityMultiplier = 1.0;
-                e.target.value = 100;
-                document.getElementById('mod-gravity-display').innerText = "1.0x";
+                engineState.modGravityMultiplier = 1.0; e.target.value = 100; document.getElementById('mod-gravity-display').innerText = "1.0x";
             }
         });
         const speedSlider = document.getElementById('mod-speed-slider');
@@ -1309,22 +1309,17 @@ const SimulationCorePipelineHub = {
                 engineState.modSpeedMultiplier = parseInt(e.target.value) / 100;
                 document.getElementById('mod-speed-display').innerText = engineState.modSpeedMultiplier.toFixed(1) + "x";
             } else {
-                engineState.modSpeedMultiplier = 1.0;
-                e.target.value = 100;
-                document.getElementById('mod-speed-display').innerText = "1.0x";
+                engineState.modSpeedMultiplier = 1.0; e.target.value = 100; document.getElementById('mod-speed-display').innerText = "1.0x";
             }
         });
 
-        // CUSTOMIZATION HOOKS
         document.getElementById('picker-char-fill').addEventListener('input', (e) => { if(engineState.unlockedMod1) engineState.customFillColor = e.target.value; });
         document.getElementById('picker-char-stroke').addEventListener('input', (e) => { if(engineState.unlockedMod1) engineState.customStrokeColor = e.target.value; });
         document.getElementById('picker-char-trail').addEventListener('input', (e) => { if(engineState.unlockedMod1) engineState.customTrailColor = e.target.value; });
         document.getElementById('picker-bg-hex').addEventListener('input', (e) => { if(engineState.unlockedMod1) engineState.customBgColor = e.target.value; });
         document.getElementById('act-reset-appearance').addEventListener('click', () => {
-            engineState.customFillColor = "#00ffaa"; engineState.customStrokeColor = "#ffffff";
-            engineState.customTrailColor = "#00ffaa"; engineState.customBgColor = "#0d0f12";
-            document.getElementById('picker-char-fill').value = "#00ffaa"; document.getElementById('picker-char-stroke').value = "#ffffff";
-            document.getElementById('picker-char-trail').value = "#00ffaa"; document.getElementById('picker-bg-hex').value = "#0d0f12";
+            engineState.customFillColor = "#00ffaa"; engineState.customStrokeColor = "#ffffff"; engineState.customTrailColor = "#00ffaa"; engineState.customBgColor = "#0d0f12";
+            document.getElementById('picker-char-fill').value = "#00ffaa"; document.getElementById('picker-char-stroke').value = "#ffffff"; document.getElementById('picker-char-trail').value = "#00ffaa"; document.getElementById('picker-bg-hex').value = "#0d0f12";
         });
 
         document.getElementById('act-main-config').addEventListener('click', () => { 
@@ -1379,16 +1374,12 @@ const SimulationCorePipelineHub = {
                 }
 
                 if (!engineState.isEnginePaused && !isConfigActive && !isModsActive && e.code === engineState.jumpKeyCodeValue) { 
-                    e.preventDefault(); 
-                    engineState.isActionKeyPressed = true;
-                    TranslationPlayerComponent.executeJumpImpulse(); 
+                    e.preventDefault(); engineState.isActionKeyPressed = true; TranslationPlayerComponent.executeJumpImpulse(); 
                 }
             }
         });
 
-        window.addEventListener('keyup', (e) => {
-            if (e.code === engineState.jumpKeyCodeValue) { engineState.isActionKeyPressed = false; }
-        });
+        window.addEventListener('keyup', (e) => { if (e.code === engineState.jumpKeyCodeValue) { engineState.isActionKeyPressed = false; } });
 
         document.getElementById('act-rebind-trigger').addEventListener('click', () => {
             engineState.isInputCapturing = true; document.getElementById('act-rebind-trigger').innerText = "Press any key...";
@@ -1409,9 +1400,7 @@ const SimulationCorePipelineHub = {
                 localStorage.setItem('sj_save_autologin', engineState.autoLoginEnabled);
                 if (engineState.autoLoginEnabled && engineState.activeUserAccount) {
                     localStorage.setItem('sj_active_session_user', engineState.activeUserAccount.username);
-                } else {
-                    localStorage.removeItem('sj_active_session_user');
-                }
+                } else { localStorage.removeItem('sj_active_session_user'); }
             } catch(err){}
         });
 
@@ -1445,9 +1434,7 @@ const SimulationCorePipelineHub = {
             } else {
                 helpText += "Available Commands:\n • /stats [username]\n • /rank [username] [rank]\n • /setnode [username] [sector] [level]\n • /give [username] [amount] [stars/moons/suns]\n • /unlockall [username]";
             }
-            
-            document.getElementById('dev-console-log-target').innerText = helpText;
-            routingDispatcher(uiScreens.devPanel);
+            document.getElementById('dev-console-log-target').innerText = helpText; routingDispatcher(uiScreens.devPanel);
         });
         document.getElementById('act-console-close').addEventListener('click', () => { routingDispatcher(engineState.previousScreenBeforeOverlay || uiScreens.main); });
 
@@ -1456,170 +1443,71 @@ const SimulationCorePipelineHub = {
             const consoleLog = document.getElementById('dev-console-log-target');
             if(!cmdText) return;
 
-            const tokens = cmdText.split(/\s+/);
-            const baseCommand = tokens[0].toLowerCase();
-            const cleanTokens = tokens.filter(t => t.trim() !== "");
-
-            // Read rank parameters
+            const tokens = cmdText.split(/\s+/); const baseCommand = tokens[0].toLowerCase(); const cleanTokens = tokens.filter(t => t.trim() !== "");
             const callerRank = engineState.activeUserAccount ? engineState.activeUserAccount.rank : "GUEST";
 
-            // Establish hierarchical permission matrices
-            const permissions = {
-                "/stats": ["MODERATOR", "ADMIN", "DEVELOPER"],
-                "/rank": ["MODERATOR", "ADMIN", "DEVELOPER"],
-                "/setnode": ["ADMIN", "DEVELOPER"],
-                "/give": ["ADMIN", "DEVELOPER"],
-                "/unlockall": ["DEVELOPER"]
-            };
+            const permissions = { "/stats": ["MODERATOR", "ADMIN", "DEVELOPER"], "/rank": ["MODERATOR", "ADMIN", "DEVELOPER"], "/setnode": ["ADMIN", "DEVELOPER"], "/give": ["ADMIN", "DEVELOPER"], "/unlockall": ["DEVELOPER"] };
 
-            // Verify authorization bounds
-            if (!permissions[baseCommand]) {
-                consoleLog.innerText = `❌ UNKNOWN COMMAND PARADE: System syntax string '${baseCommand}' is unrecognizable.`;
-                return;
-            }
-
-            if (!permissions[baseCommand].includes(callerRank)) {
-                consoleLog.innerText = `❌ ACCESS DENIED: Your account tier authorization clear level [${callerRank}] is insufficient to utilize command [${baseCommand}].`;
-                return;
-            }
+            if (!permissions[baseCommand]) { consoleLog.innerText = `❌ UNKNOWN COMMAND PARADE: System syntax string '${baseCommand}' is unrecognizable.`; return; }
+            if (!permissions[baseCommand].includes(callerRank)) { consoleLog.innerText = `❌ ACCESS DENIED: Your account tier authorization clear level [${callerRank}] is insufficient to utilize command [${baseCommand}].`; return; }
 
             if (baseCommand === "/rank") {
                 if (cleanTokens.length >= 3) {
-                    const targetUser = cleanTokens[1];
-                    const rawRank = cleanTokens[2].toUpperCase();
-                    
+                    const targetUser = cleanTokens[1]; const rawRank = cleanTokens[2].toUpperCase();
                     const permittedRanks = ["PLAYER", "MODERATOR", "ADMIN", "DEVELOPER"];
-                    if (!permittedRanks.includes(rawRank)) {
-                        consoleLog.innerText = `❌ SYNTAX ERROR: Unknown Rank requested.\nValid selection tokens: PLAYER, MODERATOR, ADMIN, DEVELOPER`;
-                        return;
-                    }
+                    if (!permittedRanks.includes(rawRank)) { consoleLog.innerText = `❌ SYNTAX ERROR: Unknown Rank requested.\nValid selection tokens: PLAYER, MODERATOR, ADMIN, DEVELOPER`; return; }
 
-                    // Enforce Moderator boundary limits
-                    if (callerRank === "MODERATOR") {
-                        if (rawRank === "ADMIN" || rawRank === "DEVELOPER") {
-                            consoleLog.innerText = `❌ ACCESS VIOLATION: Moderators cannot elevate profiles to Admin or Developer ranks.`;
-                            return;
-                        }
-                    }
-
-                    // Enforce Admin boundary limits
-                    if (callerRank === "ADMIN") {
-                        if (rawRank === "DEVELOPER") {
-                            consoleLog.innerText = `❌ ACCESS VIOLATION: Admins cannot elevate profiles to Developer rank.`;
-                            return;
-                        }
-                    }
+                    if (callerRank === "MODERATOR" && (rawRank === "ADMIN" || rawRank === "DEVELOPER")) { consoleLog.innerText = `❌ ACCESS VIOLATION: Moderators cannot elevate profiles to Admin or Developer ranks.`; return; }
+                    if (callerRank === "ADMIN" && rawRank === "DEVELOPER") { consoleLog.innerText = `❌ ACCESS VIOLATION: Admins cannot elevate profiles to Developer rank.`; return; }
                     
                     const db = AccountManager.getAllUsers();
                     if (db[targetUser]) {
                         const targetCurrentRank = db[targetUser].rank || "PLAYER";
 
-                        // Protect higher staff tiers from demotion by lower tiers
-                        if (callerRank === "MODERATOR" && (targetCurrentRank === "MODERATOR" || targetCurrentRank === "ADMIN" || targetCurrentRank === "DEVELOPER") && targetUser !== engineState.activeUserAccount.username) {
-                            consoleLog.innerText = `❌ SECURITY REJECTION: Moderators cannot modify structural attributes of other Staff items.`;
-                            return;
-                        }
-                        if (callerRank === "ADMIN" && (targetCurrentRank === "ADMIN" || targetCurrentRank === "DEVELOPER") && targetUser !== engineState.activeUserAccount.username) {
-                            consoleLog.innerText = `❌ SECURITY REJECTION: Admins cannot alter status values of matching Admins or Developers.`;
-                            return;
-                        }
+                        if (callerRank === "MODERATOR" && (targetCurrentRank === "MODERATOR" || targetCurrentRank === "ADMIN" || targetCurrentRank === "DEVELOPER") && targetUser !== engineState.activeUserAccount.username) { consoleLog.innerText = `❌ SECURITY REJECTION: Moderators cannot modify structural attributes of other Staff items.`; return; }
+                        if (callerRank === "ADMIN" && (targetCurrentRank === "ADMIN" || targetCurrentRank === "DEVELOPER") && targetUser !== engineState.activeUserAccount.username) { consoleLog.innerText = `❌ SECURITY REJECTION: Admins cannot alter status values of matching Admins or Developers.`; return; }
 
-                        db[targetUser].rank = rawRank;
-                        AccountManager.saveAllUsers(db);
-                        
-                        // If updating current active session profile
-                        if (engineState.activeUserAccount && engineState.activeUserAccount.username === targetUser) {
-                            engineState.activeUserAccount.rank = rawRank;
-                        }
-                        
-                        AccountManager.updateInterfaceDisplays();
-                        consoleLog.innerText = `🟢 SUCCESS: Profile matrix rank for [${targetUser}] forced to state [${rawRank}].`;
-                    } else {
-                        consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside architecture memory structure.`;
-                    }
-                } else {
-                    consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/rank <username> <RANK>'";
-                }
+                        db[targetUser].rank = rawRank; AccountManager.saveAllUsers(db);
+                        if (engineState.activeUserAccount && engineState.activeUserAccount.username === targetUser) { engineState.activeUserAccount.rank = rawRank; }
+                        AccountManager.updateInterfaceDisplays(); consoleLog.innerText = `🟢 SUCCESS: Profile matrix rank for [${targetUser}] forced to state [${rawRank}].`;
+                    } else { consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside architecture memory structure.`; }
+                } else { consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/rank <username> <RANK>'"; }
             }
             else if (baseCommand === "/unlockall") {
                 if (cleanTokens.length >= 2) {
                     const targetUser = cleanTokens[1]; const db = AccountManager.getAllUsers();
                     if (db[targetUser]) {
-                        // Level Matrix unlocks
-                        db[targetUser].savedLevel = 1000; 
-                        db[targetUser].savedLevelBeta = 1000; 
-                        db[targetUser].savedLevelGamma = 1000;
-                        
-                        // Give large amount of resources to easily check shop configurations
-                        db[targetUser].starsEarned = (db[targetUser].starsEarned || 0) + 100000;
-                        db[targetUser].moonsEarned = (db[targetUser].moonsEarned || 0) + 100000;
-                        db[targetUser].sunsEarned = (db[targetUser].sunsEarned || 0) + 100000;
-                        
-                        // Force structural mod flag configurations open immediately
-                        db[targetUser].unlockedMod1 = true;
-                        db[targetUser].unlockedMod2 = true;
-                        db[targetUser].unlockedMod3 = true;
-                        
+                        db[targetUser].savedLevel = 1000; db[targetUser].savedLevelBeta = 1000; db[targetUser].savedLevelGamma = 1000;
+                        db[targetUser].starsEarned = (db[targetUser].starsEarned || 0) + 100000; db[targetUser].moonsEarned = (db[targetUser].moonsEarned || 0) + 100000; db[targetUser].sunsEarned = (db[targetUser].sunsEarned || 0) + 100000;
+                        db[targetUser].unlockedMod1 = true; db[targetUser].unlockedMod2 = true; db[targetUser].unlockedMod3 = true;
                         AccountManager.saveAllUsers(db);
 
                         if (engineState.activeUserAccount && engineState.activeUserAccount.username === targetUser) {
-                            engineState.activeUserAccount.savedLevel = 1000; 
-                            engineState.activeUserAccount.savedLevelBeta = 1000; 
-                            engineState.activeUserAccount.savedLevelGamma = 1000;
-                            
-                            engineState.highestCompletedNode = 1000; 
-                            engineState.highestCompletedNodeBeta = 1000; 
-                            engineState.highestCompletedNodeGamma = 1000;
-                            
-                            engineState.unlockedMod1 = true;
-                            engineState.unlockedMod2 = true;
-                            engineState.unlockedMod3 = true;
-                            
+                            engineState.activeUserAccount.savedLevel = 1000; engineState.activeUserAccount.savedLevelBeta = 1000; engineState.activeUserAccount.savedLevelGamma = 1000;
+                            engineState.highestCompletedNode = 1000; engineState.highestCompletedNodeBeta = 1000; engineState.highestCompletedNodeGamma = 1000;
+                            engineState.unlockedMod1 = true; engineState.unlockedMod2 = true; engineState.unlockedMod3 = true;
                             this.generateMatrixSelectionGrid();
                         }
-                        
-                        AccountManager.updateShopAndModInterfaces();
-                        consoleLog.innerText = `🔓 SUCCESS: Full matrix override complete for [${targetUser}].\n• All 1000 Levels Unlocked\n• Granted 100,000 Stars, Moons, Suns\n• All Custom Mod Sliders Unlocked!`;
-                    } else {
-                        consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside local memory architecture.`;
-                    }
+                        AccountManager.updateShopAndModInterfaces(); consoleLog.innerText = `🔓 SUCCESS: Full matrix override complete for [${targetUser}].\n• All 1000 Levels Unlocked\n• Granted 100,000 Stars, Moons, Suns\n• All Custom Mod Sliders Unlocked!`;
+                    } else { consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside local memory architecture.`; }
                 } else {
-                    // Fallback for guest unlock optimization
-                    engineState.highestCompletedNode = 1000;
-                    engineState.highestCompletedNodeBeta = 1000;
-                    engineState.highestCompletedNodeGamma = 1000;
-                    engineState.guestStarsEarned += 100000;
-                    engineState.guestMoonsEarned += 100000;
-                    engineState.guestSunsEarned += 100000;
-                    engineState.unlockedMod1 = true;
-                    engineState.unlockedMod2 = true;
-                    engineState.unlockedMod3 = true;
-                    this.generateMatrixSelectionGrid();
-                    AccountManager.updateShopAndModInterfaces();
-                    consoleLog.innerText = `🔓 SUCCESS: Guest session forced open. Levels, currencies, and modification modules fully unlocked.`;
+                    engineState.highestCompletedNode = 1000; engineState.highestCompletedNodeBeta = 1000; engineState.highestCompletedNodeGamma = 1000;
+                    engineState.guestStarsEarned += 100000; engineState.guestMoonsEarned += 100000; engineState.guestSunsEarned += 100000;
+                    engineState.unlockedMod1 = true; engineState.unlockedMod2 = true; engineState.unlockedMod3 = true;
+                    this.generateMatrixSelectionGrid(); AccountManager.updateShopAndModInterfaces(); consoleLog.innerText = `🔓 SUCCESS: Guest session forced open. Levels, currencies, and modification modules fully unlocked.`;
                 }
             }
             else if (baseCommand === "/setnode") {
                 if (cleanTokens.length >= 4) {
-                    const targetUser = cleanTokens[1];
-                    const sector = cleanTokens[2].toLowerCase();
-                    const value = parseInt(cleanTokens[3]);
-                    
-                    if (isNaN(value) || value < 1 || value > 1000) {
-                        consoleLog.innerText = "❌ SYNTAX ERROR: Level number must be an integer between 1 and 1000.";
-                        return;
-                    }
-                    if (sector !== "alpha" && sector !== "beta" && sector !== "gamma") {
-                        consoleLog.innerText = "❌ SYNTAX ERROR: Sector must be 'alpha', 'beta', or 'gamma'.";
-                        return;
-                    }
+                    const targetUser = cleanTokens[1]; const sector = cleanTokens[2].toLowerCase(); const value = parseInt(cleanTokens[3]);
+                    if (isNaN(value) || value < 1 || value > 1000) { consoleLog.innerText = "❌ SYNTAX ERROR: Level number must be an integer between 1 and 1000."; return; }
+                    if (sector !== "alpha" && sector !== "beta" && sector !== "gamma") { consoleLog.innerText = "❌ SYNTAX ERROR: Sector must be 'alpha', 'beta', or 'gamma'."; return; }
                     
                     const db = AccountManager.getAllUsers();
                     if (db[targetUser]) {
                         if (sector === "alpha") db[targetUser].savedLevel = value;
                         else if (sector === "beta") db[targetUser].savedLevelBeta = value;
                         else if (sector === "gamma") db[targetUser].savedLevelGamma = value;
-                        
                         AccountManager.saveAllUsers(db);
                         if (engineState.activeUserAccount && engineState.activeUserAccount.username === targetUser) {
                             if (sector === "alpha") engineState.highestCompletedNode = value;
@@ -1628,12 +1516,8 @@ const SimulationCorePipelineHub = {
                             this.generateMatrixSelectionGrid();
                         }
                         consoleLog.innerText = `🟢 SUCCESS: Progress forced to level ${value} in Sector ${sector.toUpperCase()} for user [${targetUser}].`;
-                    } else {
-                        consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside architecture memory.`;
-                    }
-                } else {
-                    consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/setnode <username> <sector> <level_number>'";
-                }
+                    } else { consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside architecture memory.`; }
+                } else { consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/setnode <username> <sector> <level_number>'"; }
             }
             else if (baseCommand === "/give") {
                 if (cleanTokens.length >= 4) {
@@ -1654,14 +1538,9 @@ const SimulationCorePipelineHub = {
                             else if (type === "moons") engineState.guestMoonsEarned += amount;
                             else if (type === "suns") engineState.guestSunsEarned += amount;
                         }
-                        AccountManager.updateShopAndModInterfaces();
-                        consoleLog.innerText = `🟢 SUCCESS: Allocated ${amount} values to [${targetUser}].`;
-                    } else {
-                        consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside memory architecture.`;
-                    }
-                } else {
-                    consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/give <username> <amount> stars/moons/suns'";
-                }
+                        AccountManager.updateShopAndModInterfaces(); consoleLog.innerText = `🟢 SUCCESS: Allocated ${amount} values to [${targetUser}].`;
+                    } else { consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside memory architecture.`; }
+                } else { consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/give <username> <amount> stars/moons/suns'"; }
             } 
             else if (baseCommand === "/stats") {
                 if (cleanTokens.length >= 2) {
@@ -1669,12 +1548,8 @@ const SimulationCorePipelineHub = {
                     if (db[targetUser]) {
                         const tgt = db[targetUser];
                         consoleLog.innerText = `📊 CORE ANALYSIS DATA [${tgt.username}]:\n• Rank: ${tgt.rank || "PLAYER"}\n• Levels Beaten: ${tgt.levelsBeaten || 0}\n• Stars: ${tgt.starsEarned || 0}\n• Moons: ${tgt.moonsEarned || 0}\n• Suns: ${tgt.sunsEarned || 0}\n• Lifetime Deaths: ${tgt.totalDeaths || 0}`;
-                    } else {
-                        consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside memory matrix cells.`;
-                    }
-                } else {
-                    consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/stats <username>'";
-                }
+                    } else { consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside memory matrix cells.`; }
+                } else { consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/stats <username>'"; }
             }
         });
 
@@ -1687,6 +1562,54 @@ const SimulationCorePipelineHub = {
         document.getElementById('act-go-signup').addEventListener('click', () => { document.getElementById('signup-username').value = ""; document.getElementById('signup-password').value = ""; document.getElementById('signup-error-box').innerText = ""; routingDispatcher(uiScreens.accountSignup); });
         document.getElementById('act-go-login').addEventListener('click', () => { document.getElementById('login-username').value = ""; document.getElementById('login-password').value = ""; document.getElementById('login-error-box').innerText = ""; routingDispatcher(uiScreens.accountLogin); });
         document.getElementById('act-user-delete-prompt').addEventListener('click', () => { document.getElementById('delete-password-confirm').value = ""; document.getElementById('delete-error-box').innerText = ""; routingDispatcher(uiScreens.accountDeleteVerify); });
+
+        // HOOK ACTIONS FOR NEW WIPE FLOWS
+        document.getElementById('act-user-wipe-prompt').addEventListener('click', () => { routingDispatcher(uiScreens.accountWipeVerify); });
+        document.getElementById('act-wipe-cancel').addEventListener('click', () => { routingDispatcher(uiScreens.accountAuth); });
+        document.getElementById('act-submit-wipe-confirm').addEventListener('click', () => {
+            if (engineState.activeUserAccount) {
+                const db = AccountManager.getAllUsers();
+                const account = db[engineState.activeUserAccount.username];
+                if (account) {
+                    // Reset all variables to ground values
+                    account.savedLevel = 1;
+                    account.savedLevelBeta = 1;
+                    account.savedLevelGamma = 1;
+                    account.levelsBeaten = 0;
+                    account.starsEarned = 0;
+                    account.moonsEarned = 0;
+                    account.sunsEarned = 0;
+                    account.totalDeaths = 0;
+                    account.unlockedMod1 = false;
+                    account.unlockedMod2 = false;
+                    account.unlockedMod3 = false;
+                    
+                    AccountManager.saveAllUsers(db);
+                    engineState.activeUserAccount = account;
+                    
+                    // Reset runtime mirrors
+                    engineState.highestCompletedNode = 1;
+                    engineState.highestCompletedNodeBeta = 1;
+                    engineState.highestCompletedNodeGamma = 1;
+                    engineState.unlockedMod1 = false;
+                    engineState.unlockedMod2 = false;
+                    engineState.unlockedMod3 = false;
+                    
+                    // Force physics multiplier slider defaults back down
+                    engineState.modGravityMultiplier = 1.0;
+                    engineState.modSpeedMultiplier = 1.0;
+                    document.getElementById('mod-gravity-slider').value = 100;
+                    document.getElementById('mod-gravity-display').innerText = "1.0x";
+                    document.getElementById('mod-speed-slider').value = 100;
+                    document.getElementById('mod-speed-display').innerText = "1.0x";
+                    
+                    AccountManager.updateInterfaceDisplays();
+                    this.generateMatrixSelectionGrid();
+                    alert("Account profile data wiped successfully.");
+                }
+            }
+            routingDispatcher(uiScreens.main);
+        });
 
         document.getElementById('act-submit-signup').addEventListener('click', () => {
             const user = document.getElementById('signup-username').value.trim(); const pass = document.getElementById('signup-password').value; const errorBox = document.getElementById('signup-error-box');
@@ -1731,31 +1654,20 @@ const SimulationCorePipelineHub = {
         });
     },
     instantiateLevelExecutionPipeline(nodeIdValue) {
-        this.terminateLoopExecution();
-        engineState.activeSelectedNode = nodeIdValue;
-        engineState.isEnginePaused = false;
-        engineState.metricsJumpsThisSession = 0;
-        engineState.isActionKeyPressed = false;
-        engineState.isEngineActive = true;
-        engineState.isConfigOpenedFromPause = false;
+        this.terminateLoopExecution(); engineState.activeSelectedNode = nodeIdValue; engineState.isEnginePaused = false; engineState.metricsJumpsThisSession = 0; engineState.isActionKeyPressed = false; engineState.isEngineActive = true; engineState.isConfigOpenedFromPause = false;
         uiOverlays.halt.classList.remove('active'); uiOverlays.success.classList.remove('active');
         routingDispatcher(uiScreens.runtime);
         TranslationPlayerComponent.resetKinematicState(); ParticleFXArrayPoolController.allocatedParticles = [];
 
         let activeLevelData = ExplicitStaticLevelDeclarationMatrix[nodeIdValue - 1];
-        if (!activeLevelData || engineState.currentActiveSector !== "alpha") {
-            activeLevelData = generateProceduralLevelStructure(nodeIdValue);
-        }
+        if (!activeLevelData || engineState.currentActiveSector !== "alpha") { activeLevelData = generateProceduralLevelStructure(nodeIdValue); }
 
-        RuntimeContextStage.activeBlocks = activeLevelData.layoutBlocks;
-        RuntimeContextStage.activeSpikes = activeLevelData.layoutSpikes;
-        RuntimeContextStage.objectiveFinishPointX = activeLevelData.finishLineCoordinateX;
+        RuntimeContextStage.activeBlocks = activeLevelData.layoutBlocks; RuntimeContextStage.activeSpikes = activeLevelData.layoutSpikes; RuntimeContextStage.objectiveFinishPointX = activeLevelData.finishLineCoordinateX;
         this.trackedCameraX = 0; engineState.animationLoopReference = requestAnimationFrame(() => this.engineClockPulse());
     },
     terminateLoopExecution() { engineState.isEngineActive = false; if (engineState.animationLoopReference) { cancelAnimationFrame(engineState.animationLoopReference); engineState.animationLoopReference = null; } },
     executeAnnihilationProtocol() {
-        this.terminateLoopExecution(); engineState.metricsDeathsThisSession++;
-        AccountManager.syncGameProgressData(0, true);
+        this.terminateLoopExecution(); engineState.metricsDeathsThisSession++; AccountManager.syncGameProgressData(0, true);
         if (!engineState.activeUserAccount) engineState.guestLifetimeDeaths++;
 
         SoundSynthesizerNode.emitToneWaveform(120, 'sawtooth', 0.08, 0.22, 0.28);
@@ -1781,25 +1693,17 @@ const SimulationCorePipelineHub = {
 
         const winHeadline = document.getElementById('success-screen-headline');
         
-        if (engineState.currentActiveSector === "beta") {
-            winHeadline.innerText = "YOU EARNED A MOON! 🌙"; winHeadline.style.color = "#00ccff";
-        } else if (engineState.currentActiveSector === "gamma") {
-            winHeadline.innerText = "YOU EARNED A SUN! ☀️"; winHeadline.style.color = "#ff9f43";
-        } else {
-            winHeadline.innerText = "LEVEL COMPLETED! ⭐️"; winHeadline.style.color = "#00ffaa";
-        }
+        if (engineState.currentActiveSector === "beta") { winHeadline.innerText = "YOU EARNED A MOON! 🌙"; winHeadline.style.color = "#00ccff"; } 
+        else if (engineState.currentActiveSector === "gamma") { winHeadline.innerText = "YOU EARNED A SUN! ☀️"; winHeadline.style.color = "#ff9f43"; } 
+        else { winHeadline.innerText = "LEVEL COMPLETED! ⭐️"; winHeadline.style.color = "#00ffaa"; }
 
         if (nextLevelIndex > highestLabelCheck) {
             AccountManager.syncGameProgressData(nextLevelIndex);
             if (!engineState.activeUserAccount) {
                 engineState.guestLevelsBeaten++;
-                if (engineState.currentActiveSector === "alpha") {
-                    engineState.guestStarsEarned++; engineState.highestCompletedNode = nextLevelIndex;
-                } else if (engineState.currentActiveSector === "beta") {
-                    engineState.guestMoonsEarned++; engineState.highestCompletedNodeBeta = nextLevelIndex;
-                } else {
-                    engineState.guestSunsEarned++; engineState.highestCompletedNodeGamma = nextLevelIndex;
-                }
+                if (engineState.currentActiveSector === "alpha") { engineState.guestStarsEarned++; engineState.highestCompletedNode = nextLevelIndex; } 
+                else if (engineState.currentActiveSector === "beta") { engineState.guestMoonsEarned++; engineState.highestCompletedNodeBeta = nextLevelIndex; } 
+                else { engineState.guestSunsEarned++; engineState.highestCompletedNodeGamma = nextLevelIndex; }
             }
         }
         document.getElementById('cfg-telemetry-dump').innerText = `Actions Performed: ${engineState.metricsJumpsThisSession} | Deaths: ${engineState.metricsDeathsThisSession}`;
@@ -1820,9 +1724,7 @@ const SimulationCorePipelineHub = {
         this.executePipelineRenderRefresh(); engineState.animationLoopReference = requestAnimationFrame(() => this.engineClockPulse());
     },
     renderStaticGeometryElements() {
-        this.ctxRef.fillStyle = "#1e2530"; 
-        this.ctxRef.strokeStyle = engineState.currentActiveSector === "alpha" ? "#00ffaa" : (engineState.currentActiveSector === "beta" ? "#ff9f43" : "#e056fd"); 
-        this.ctxRef.lineWidth = 3;
+        this.ctxRef.fillStyle = "#1e2530"; this.ctxRef.strokeStyle = engineState.currentActiveSector === "alpha" ? "#00ffaa" : (engineState.currentActiveSector === "beta" ? "#ff9f43" : "#e056fd"); this.ctxRef.lineWidth = 3;
         for (let i = 0; i < RuntimeContextStage.activeBlocks.length; i++) {
             let block = RuntimeContextStage.activeBlocks[i]; this.ctxRef.fillRect(block.x - this.trackedCameraX, block.y, block.w, block.h); this.ctxRef.strokeRect(block.x - this.trackedCameraX, block.y, block.w, block.h);
         }
@@ -1851,7 +1753,8 @@ const SimulationCorePipelineHub = {
 const uiScreens = {
     main: document.getElementById('view-main'), shop: document.getElementById('view-shop'), mods: document.getElementById('view-mods'), customizer: document.getElementById('view-customizer'), sector: document.getElementById('view-sector'), node: document.getElementById('view-node'), config: document.getElementById('view-config'), runtime: document.getElementById('view-runtime'),
     gameStats: document.getElementById('view-game-stats'), devPanel: document.getElementById('view-developer-panel'),
-    accountAnon: document.getElementById('view-account-anonymous'), accountSignup: document.getElementById('view-account-signup'), accountLogin: document.getElementById('view-account-login'), accountAuth: document.getElementById('view-account-authenticated'), accountDeleteVerify: document.getElementById('view-account-delete-verify')
+    accountAnon: document.getElementById('view-account-anonymous'), accountSignup: document.getElementById('view-account-signup'), accountLogin: document.getElementById('view-account-login'), accountAuth: document.getElementById('view-account-authenticated'), accountDeleteVerify: document.getElementById('view-account-delete-verify'),
+    accountWipeVerify: document.getElementById('view-account-wipe-verify') // Map UI screen register reference
 };
 const uiOverlays = { halt: document.getElementById('view-halt-overlay'), success: document.getElementById('view-success-overlay') };
 
@@ -1859,7 +1762,7 @@ function routingDispatcher(targetScreen) {
     Object.values(uiScreens).forEach(screen => screen.classList.remove('active')); targetScreen.classList.add('active');
     const accountWrapper = document.getElementById('main-menu-account-anchor');
     
-    if (targetScreen !== uiScreens.runtime && targetScreen !== uiScreens.devPanel && targetScreen !== uiScreens.config && targetScreen !== uiScreens.mods && targetScreen !== uiScreens.customizer) {
+    if (targetScreen !== uiScreens.runtime && targetScreen !== uiScreens.devPanel && targetScreen !== uiScreens.config && targetScreen !== uiScreens.mods && targetScreen !== uiScreens.customizer && targetScreen !== uiScreens.accountWipeVerify) {
         accountWrapper.style.display = "flex";
     } else if (targetScreen === uiScreens.config && !engineState.isConfigOpenedFromPause) {
         accountWrapper.style.display = "flex";
