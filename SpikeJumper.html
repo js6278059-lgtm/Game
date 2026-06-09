@@ -173,8 +173,8 @@
         .node-select-btn { min-width: auto; padding: 16px; margin: 0; font-size: 1rem; }
         
         /* SETTINGS SLIDER AND CONFIG PANELS */
-        .config-box { background: rgba(0, 0, 0, 0.3); padding: 40px; border: 1px solid #2c3540; width: 65%; text-align: center; max-height: 70vh; overflow-y: auto; }
-        .config-row { margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .config-box { background: rgba(0, 0, 0, 0.3); padding: 30px; border: 1px solid #2c3540; width: 65%; text-align: center; max-height: 70vh; overflow-y: auto; }
+        .config-row { margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         
         /* TOGGLE SWITCH STYLES */
         .switch-container {
@@ -427,10 +427,32 @@
         <div class="config-box">
             <div class="config-row">
                 <p style="font-size: 1.3rem;">Action Control Key: <span id="cfg-key-label" style="color:#00ffaa; font-weight:bold;">Space</span></p>
-                <button id="act-rebind-trigger" style="min-width: 260px; padding: 12px;">Change Key Bind</button>
+                <button id="act-rebind-trigger" style="min-width: 260px; padding: 12px; margin: 0;">Change Key Bind</button>
             </div>
             
-            <hr style="border: 0; border-top: 1px solid #2c3540; margin: 20px 0;">
+            <hr style="border: 0; border-top: 1px solid #2c3540; margin: 15px 0;">
+
+            <div class="config-row">
+                <div class="switch-container">
+                    <span class="switch-label">Auto Next Level</span>
+                    <label class="switch-input-wrapper">
+                        <input type="checkbox" id="cfg-autonext-switch">
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="config-row">
+                <div class="switch-container">
+                    <span class="switch-label">Save Mods</span>
+                    <label class="switch-input-wrapper">
+                        <input type="checkbox" id="cfg-savemods-switch">
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #2c3540; margin: 15px 0;">
 
             <div class="config-row">
                 <div class="switch-container">
@@ -442,7 +464,7 @@
                 </div>
             </div>
 
-            <hr style="border: 0; border-top: 1px solid #2c3540; margin: 20px 0;">
+            <hr style="border: 0; border-top: 1px solid #2c3540; margin: 15px 0;">
 
             <div class="config-row">
                 <p style="font-size: 1.3rem; margin-bottom: 5px;">Master Audio Volume</p>
@@ -596,6 +618,8 @@ const engineState = {
     jumpKeyCodeValue: "Space",
     masterVolume: 0.5,
     autoLoginEnabled: false,
+    autoNextLevelEnabled: false, 
+    saveModsEnabled: false, // NEW ENGINE STATE PROPERTY
     highestCompletedNode: 1, 
     highestCompletedNodeBeta: 1, 
     highestCompletedNodeGamma: 1,
@@ -661,6 +685,20 @@ const AccountManager = {
             engineState.unlockedMod1 = !!engineState.activeUserAccount.unlockedMod1;
             engineState.unlockedMod2 = !!engineState.activeUserAccount.unlockedMod2;
             engineState.unlockedMod3 = !!engineState.activeUserAccount.unlockedMod3;
+
+            // Load saved mod slider multipliers if feature is enabled
+            if (engineState.saveModsEnabled) {
+                if (engineState.activeUserAccount.savedGravityMod !== undefined) {
+                    engineState.modGravityMultiplier = engineState.activeUserAccount.savedGravityMod;
+                    document.getElementById('mod-gravity-slider').value = Math.round(engineState.modGravityMultiplier * 100);
+                    document.getElementById('mod-gravity-display').innerText = engineState.modGravityMultiplier.toFixed(1) + "x";
+                }
+                if (engineState.activeUserAccount.savedSpeedMod !== undefined) {
+                    engineState.modSpeedMultiplier = engineState.activeUserAccount.savedSpeedMod;
+                    document.getElementById('mod-speed-slider').value = Math.round(engineState.modSpeedMultiplier * 100);
+                    document.getElementById('mod-speed-display').innerText = engineState.modSpeedMultiplier.toFixed(1) + "x";
+                }
+            }
             
             const currentRank = engineState.activeUserAccount.rank || "PLAYER";
             if (currentRank === "DEVELOPER") {
@@ -715,12 +753,12 @@ const AccountManager = {
         // Mod 2 element toggle updates
         const buy2 = document.getElementById('act-buy-mod2');
         if (engineState.unlockedMod2) { buy2.innerText = "UNLOCKED"; buy2.disabled = true; document.getElementById('mod2-locked-state').style.display = "none"; document.getElementById('mod2-slider-container').style.display = "flex"; } 
-        else { buy2.innerText = "Buy: 500 Moons"; buy2.disabled = false; document.getElementById('mod2-locked-state').style.display = "block"; document.getElementById('mod2-slider-container').style.display = "none"; }
+        else { buy2.innerText = "Buy: 500 Moons"; buy2.disabled = false; document.getElementById('mod2-locked-state').style.display = "block"; document.getElementById('mod2-slider-container').style.display = "flex"; }
 
         // Mod 3 element toggle updates
         const buy3 = document.getElementById('act-buy-mod3');
         if (engineState.unlockedMod3) { buy3.innerText = "UNLOCKED"; buy3.disabled = true; document.getElementById('mod3-locked-state').style.display = "none"; document.getElementById('mod3-slider-container').style.display = "flex"; } 
-        else { buy3.innerText = "Buy: 500 Suns"; buy3.disabled = false; document.getElementById('mod3-locked-state').style.display = "block"; document.getElementById('mod3-slider-container').style.display = "none"; }
+        else { buy3.innerText = "Buy: 500 Suns"; buy3.disabled = false; document.getElementById('mod3-locked-state').style.display = "block"; document.getElementById('mod3-slider-container').style.display = "flex"; }
     },
     syncGameProgressData(nodeValue, incrementDeath = false) {
         if (!engineState.activeUserAccount) {
@@ -763,6 +801,15 @@ const AccountManager = {
             account.unlockedMod1 = engineState.unlockedMod1;
             account.unlockedMod2 = engineState.unlockedMod2;
             account.unlockedMod3 = engineState.unlockedMod3;
+
+            // Retain slider parameters inside db profile if checked
+            if (engineState.saveModsEnabled) {
+                account.savedGravityMod = engineState.modGravityMultiplier;
+                account.savedSpeedMod = engineState.modSpeedMultiplier;
+            } else {
+                delete account.savedGravityMod;
+                delete account.savedSpeedMod;
+            }
 
             engineState.activeUserAccount = account;
             this.saveAllUsers(db);
@@ -815,6 +862,19 @@ const AccountManager = {
         if (savedAutoLogin !== null) {
             engineState.autoLoginEnabled = savedAutoLogin === 'true';
             document.getElementById('cfg-autologin-switch').checked = engineState.autoLoginEnabled;
+        }
+
+        const savedAutoNext = localStorage.getItem('sj_save_autonext');
+        if (savedAutoNext !== null) {
+            engineState.autoNextLevelEnabled = savedAutoNext === 'true';
+            document.getElementById('cfg-autonext-switch').checked = engineState.autoNextLevelEnabled;
+        }
+
+        // LOAD PREFERENCE FOR SAVE MODS
+        const savedSaveMods = localStorage.getItem('sj_save_savemods');
+        if (savedSaveMods !== null) {
+            engineState.saveModsEnabled = savedSaveMods === 'true';
+            document.getElementById('cfg-savemods-switch').checked = engineState.saveModsEnabled;
         }
 
         if (engineState.autoLoginEnabled) {
@@ -1299,6 +1359,8 @@ const SimulationCorePipelineHub = {
             if (engineState.unlockedMod2) {
                 engineState.modGravityMultiplier = parseInt(e.target.value) / 100;
                 document.getElementById('mod-gravity-display').innerText = engineState.modGravityMultiplier.toFixed(1) + "x";
+                // Trigger dynamic serialization write updates if saved preferences configuration matches active
+                if (engineState.saveModsEnabled) AccountManager.syncGameProgressData(0);
             } else {
                 engineState.modGravityMultiplier = 1.0; e.target.value = 100; document.getElementById('mod-gravity-display').innerText = "1.0x";
             }
@@ -1308,6 +1370,8 @@ const SimulationCorePipelineHub = {
             if (engineState.unlockedMod3) {
                 engineState.modSpeedMultiplier = parseInt(e.target.value) / 100;
                 document.getElementById('mod-speed-display').innerText = engineState.modSpeedMultiplier.toFixed(1) + "x";
+                // Trigger dynamic serialization write updates if saved preferences configuration matches active
+                if (engineState.saveModsEnabled) AccountManager.syncGameProgressData(0);
             } else {
                 engineState.modSpeedMultiplier = 1.0; e.target.value = 100; document.getElementById('mod-speed-display').innerText = "1.0x";
             }
@@ -1401,6 +1465,21 @@ const SimulationCorePipelineHub = {
                 if (engineState.autoLoginEnabled && engineState.activeUserAccount) {
                     localStorage.setItem('sj_active_session_user', engineState.activeUserAccount.username);
                 } else { localStorage.removeItem('sj_active_session_user'); }
+            } catch(err){}
+        });
+
+        document.getElementById('cfg-autonext-switch').addEventListener('change', (e) => {
+            engineState.autoNextLevelEnabled = e.target.checked;
+            try { localStorage.setItem('sj_save_autonext', engineState.autoNextLevelEnabled); } catch(err){}
+        });
+
+        // SAVE MODS INPUT TOGGLE MECHANICS ATTACHMENT
+        document.getElementById('cfg-savemods-switch').addEventListener('change', (e) => {
+            engineState.saveModsEnabled = e.target.checked;
+            try { 
+                localStorage.setItem('sj_save_savemods', engineState.saveModsEnabled);
+                // Synchronize state preferences instantly inside the architecture database
+                AccountManager.syncGameProgressData(0);
             } catch(err){}
         });
 
@@ -1563,7 +1642,6 @@ const SimulationCorePipelineHub = {
         document.getElementById('act-go-login').addEventListener('click', () => { document.getElementById('login-username').value = ""; document.getElementById('login-password').value = ""; document.getElementById('login-error-box').innerText = ""; routingDispatcher(uiScreens.accountLogin); });
         document.getElementById('act-user-delete-prompt').addEventListener('click', () => { document.getElementById('delete-password-confirm').value = ""; document.getElementById('delete-error-box').innerText = ""; routingDispatcher(uiScreens.accountDeleteVerify); });
 
-        // HOOK ACTIONS FOR NEW WIPE FLOWS
         document.getElementById('act-user-wipe-prompt').addEventListener('click', () => { routingDispatcher(uiScreens.accountWipeVerify); });
         document.getElementById('act-wipe-cancel').addEventListener('click', () => { routingDispatcher(uiScreens.accountAuth); });
         document.getElementById('act-submit-wipe-confirm').addEventListener('click', () => {
@@ -1571,7 +1649,6 @@ const SimulationCorePipelineHub = {
                 const db = AccountManager.getAllUsers();
                 const account = db[engineState.activeUserAccount.username];
                 if (account) {
-                    // Reset all variables to ground values
                     account.savedLevel = 1;
                     account.savedLevelBeta = 1;
                     account.savedLevelGamma = 1;
@@ -1583,11 +1660,12 @@ const SimulationCorePipelineHub = {
                     account.unlockedMod1 = false;
                     account.unlockedMod2 = false;
                     account.unlockedMod3 = false;
+                    delete account.savedGravityMod;
+                    delete account.savedSpeedMod;
                     
                     AccountManager.saveAllUsers(db);
                     engineState.activeUserAccount = account;
                     
-                    // Reset runtime mirrors
                     engineState.highestCompletedNode = 1;
                     engineState.highestCompletedNodeBeta = 1;
                     engineState.highestCompletedNodeGamma = 1;
@@ -1595,7 +1673,6 @@ const SimulationCorePipelineHub = {
                     engineState.unlockedMod2 = false;
                     engineState.unlockedMod3 = false;
                     
-                    // Force physics multiplier slider defaults back down
                     engineState.modGravityMultiplier = 1.0;
                     engineState.modSpeedMultiplier = 1.0;
                     document.getElementById('mod-gravity-slider').value = 100;
@@ -1691,12 +1768,6 @@ const SimulationCorePipelineHub = {
         if (engineState.currentActiveSector === "beta") highestLabelCheck = engineState.highestCompletedNodeBeta;
         if (engineState.currentActiveSector === "gamma") highestLabelCheck = engineState.highestCompletedNodeGamma;
 
-        const winHeadline = document.getElementById('success-screen-headline');
-        
-        if (engineState.currentActiveSector === "beta") { winHeadline.innerText = "YOU EARNED A MOON! 🌙"; winHeadline.style.color = "#00ccff"; } 
-        else if (engineState.currentActiveSector === "gamma") { winHeadline.innerText = "YOU EARNED A SUN! ☀️"; winHeadline.style.color = "#ff9f43"; } 
-        else { winHeadline.innerText = "LEVEL COMPLETED! ⭐️"; winHeadline.style.color = "#00ffaa"; }
-
         if (nextLevelIndex > highestLabelCheck) {
             AccountManager.syncGameProgressData(nextLevelIndex);
             if (!engineState.activeUserAccount) {
@@ -1705,7 +1776,21 @@ const SimulationCorePipelineHub = {
                 else if (engineState.currentActiveSector === "beta") { engineState.guestMoonsEarned++; engineState.highestCompletedNodeBeta = nextLevelIndex; } 
                 else { engineState.guestSunsEarned++; engineState.highestCompletedNodeGamma = nextLevelIndex; }
             }
+        } else {
+            // Force save settings even if beating an old level when option is checked
+            if (engineState.saveModsEnabled) AccountManager.syncGameProgressData(0);
         }
+
+        if (engineState.autoNextLevelEnabled) {
+            this.instantiateLevelExecutionPipeline(nextLevelIndex);
+            return;
+        }
+
+        const winHeadline = document.getElementById('success-screen-headline');
+        if (engineState.currentActiveSector === "beta") { winHeadline.innerText = "YOU EARNED A MOON! 🌙"; winHeadline.style.color = "#00ccff"; } 
+        else if (engineState.currentActiveSector === "gamma") { winHeadline.innerText = "YOU EARNED A SUN! ☀️"; winHeadline.style.color = "#ff9f43"; } 
+        else { winHeadline.innerText = "LEVEL COMPLETED! ⭐️"; winHeadline.style.color = "#00ffaa"; }
+
         document.getElementById('cfg-telemetry-dump').innerText = `Actions Performed: ${engineState.metricsJumpsThisSession} | Deaths: ${engineState.metricsDeathsThisSession}`;
         uiOverlays.success.classList.add('active');
     },
@@ -1754,7 +1839,7 @@ const uiScreens = {
     main: document.getElementById('view-main'), shop: document.getElementById('view-shop'), mods: document.getElementById('view-mods'), customizer: document.getElementById('view-customizer'), sector: document.getElementById('view-sector'), node: document.getElementById('view-node'), config: document.getElementById('view-config'), runtime: document.getElementById('view-runtime'),
     gameStats: document.getElementById('view-game-stats'), devPanel: document.getElementById('view-developer-panel'),
     accountAnon: document.getElementById('view-account-anonymous'), accountSignup: document.getElementById('view-account-signup'), accountLogin: document.getElementById('view-account-login'), accountAuth: document.getElementById('view-account-authenticated'), accountDeleteVerify: document.getElementById('view-account-delete-verify'),
-    accountWipeVerify: document.getElementById('view-account-wipe-verify') // Map UI screen register reference
+    accountWipeVerify: document.getElementById('view-account-wipe-verify')
 };
 const uiOverlays = { halt: document.getElementById('view-halt-overlay'), success: document.getElementById('view-success-overlay') };
 
