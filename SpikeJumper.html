@@ -509,8 +509,8 @@
     </div>
 
     <div id="view-developer-panel" class="screen">
-        <h2 style="color: #ff0055; letter-spacing: 2px;">DEVELOPER COMMAND PORTAL</h2>
-        <p style="color: #8a9ba8; margin-bottom: 20px;">Execute targeted systems orchestration syntax queries</p>
+        <h2 style="color: #ff0055; letter-spacing: 2px;">COMMAND PORTAL</h2>
+        <p id="dev-console-permission-notice" style="color: #8a9ba8; margin-bottom: 20px;">Execute authorized operational parameters</p>
         <div class="config-box" style="width: 650px; padding: 30px;">
             <input type="text" id="dev-console-input-box" class="input-field" style="font-family: monospace; border-color: #ff0055;" placeholder="e.g. /setnode Username beta 45">
             <div class="console-output-box" id="dev-console-log-target">Terminal ready. Awaiting operational parameters...</div>
@@ -700,12 +700,12 @@ const AccountManager = {
         // Mod 2 element toggle updates
         const buy2 = document.getElementById('act-buy-mod2');
         if (engineState.unlockedMod2) { buy2.innerText = "UNLOCKED"; buy2.disabled = true; document.getElementById('mod2-locked-state').style.display = "none"; document.getElementById('mod2-slider-container').style.display = "flex"; } 
-        else { buy2.innerText = "Buy: 500 Moons"; buy2.disabled = false; document.getElementById('mod2-locked-state').style.display = "block"; document.getElementById('mod2-slider-container').style.display = "flex"; }
+        else { buy2.innerText = "Buy: 500 Moons"; buy2.disabled = false; document.getElementById('mod2-locked-state').style.display = "block"; document.getElementById('mod2-slider-container').style.display = "none"; }
 
         // Mod 3 element toggle updates
         const buy3 = document.getElementById('act-buy-mod3');
         if (engineState.unlockedMod3) { buy3.innerText = "UNLOCKED"; buy3.disabled = true; document.getElementById('mod3-locked-state').style.display = "none"; document.getElementById('mod3-slider-container').style.display = "flex"; } 
-        else { buy3.innerText = "Buy: 500 Suns"; buy3.disabled = false; document.getElementById('mod3-locked-state').style.display = "block"; document.getElementById('mod3-slider-container').style.display = "flex"; }
+        else { buy3.innerText = "Buy: 500 Suns"; buy3.disabled = false; document.getElementById('mod3-locked-state').style.display = "block"; document.getElementById('mod3-slider-container').style.display = "none"; }
     },
     syncGameProgressData(nodeValue, incrementDeath = false) {
         if (!engineState.activeUserAccount) {
@@ -862,7 +862,9 @@ class MatrixBackgroundProjection {
         }
     }
     renderLayer(ctx, camX) {
-        ctx.fillStyle = this.color; ctx.beginPath();
+        // Enforce background customization limit rule
+        ctx.fillStyle = engineState.unlockedMod1 ? engineState.customBgColor : this.color; 
+        ctx.beginPath();
         let scrollOffset = camX * this.ratio; ctx.moveTo(0, engineState.virtualHeight);
         let startDrawing = false;
         for (let i = 0; i < this.vectorPointsArray.length; i++) {
@@ -922,7 +924,7 @@ const ParticleFXArrayPoolController = {
     executeParticleRenderPass(ctx, camX) {
         for (let i = 0; i < this.allocatedParticles.length; i++) { this.allocatedParticles[i].renderParticleElement(ctx, camX); }
     }
-};
+}
 
 const TranslationPlayerComponent = {
     x: 200, y: 600, w: 54, h: 54, vy: 0, vx: 9.0, 
@@ -940,7 +942,8 @@ const TranslationPlayerComponent = {
         this.rotationStateAngle = 0; 
     },
     executeJumpImpulse() {
-        const localGravMod = engineState.modGravityMultiplier;
+        // Enforce Mod 2 constraint lock fallbacks directly inside structural physics handlers
+        const localGravMod = engineState.unlockedMod2 ? engineState.modGravityMultiplier : 1.0;
         if (engineState.currentActiveSector === "alpha" && this.isSurfaceContactGrounded) {
             this.vy = this.terminalVerticalImpulse * Math.sqrt(localGravMod); 
             this.isSurfaceContactGrounded = false;
@@ -954,15 +957,16 @@ const TranslationPlayerComponent = {
         }
     },
     evaluateStepPhysics(collisionBlocks, fatalSpikes) {
-        const gMod = engineState.modGravityMultiplier;
-        const speedBase = this.vx * engineState.modSpeedMultiplier;
+        // Enforce lock parameters: evaluate fallback defaults if runtime items are missing
+        const gMod = engineState.unlockedMod2 ? engineState.modGravityMultiplier : 1.0;
+        const speedBase = this.vx * (engineState.unlockedMod3 ? engineState.modSpeedMultiplier : 1.0);
 
         if (engineState.currentActiveSector === "alpha") {
             this.x += speedBase; 
             this.vy += this.gravityScalar * gMod; 
             this.y += this.vy;
             if (!this.isSurfaceContactGrounded) { 
-                this.rotationStateAngle += 0.09 * engineState.modSpeedMultiplier; 
+                this.rotationStateAngle += 0.09 * (engineState.unlockedMod3 ? engineState.modSpeedMultiplier : 1.0); 
             } else { 
                 let targetedSnapAngle = Math.round(this.rotationStateAngle / (Math.PI / 2)) * (Math.PI / 2); 
                 this.rotationStateAngle += (targetedSnapAngle - this.rotationStateAngle) * 0.35; 
@@ -984,7 +988,7 @@ const TranslationPlayerComponent = {
             this.vy += this.ballGravityScalar * this.ballGravityDirection * gMod;
             if (Math.abs(this.vy) > this.ballTerminalY) this.vy = this.ballTerminalY * this.ballGravityDirection;
             this.y += this.vy;
-            this.rotationStateAngle += 0.12 * this.ballGravityDirection * engineState.modSpeedMultiplier;
+            this.rotationStateAngle += 0.12 * this.ballGravityDirection * (engineState.unlockedMod3 ? engineState.modSpeedMultiplier : 1.0);
         }
 
         // Drop custom structural color trail streamer if unlocked
@@ -1253,7 +1257,15 @@ const SimulationCorePipelineHub = {
             else { routingDispatcher(uiScreens.main); }
         });
         document.getElementById('act-halt-mods').addEventListener('click', () => { uiOverlays.halt.classList.remove('active'); routingDispatcher(uiScreens.mods); });
-        document.getElementById('act-open-customizer').addEventListener('click', () => routingDispatcher(uiScreens.customizer));
+        
+        // Prevent manual menu routing to customizer if not unlocked
+        document.getElementById('act-open-customizer').addEventListener('click', () => {
+            if (engineState.unlockedMod1) {
+                routingDispatcher(uiScreens.customizer);
+            } else {
+                alert("Mod 1 Locked!");
+            }
+        });
         document.getElementById('act-customizer-back').addEventListener('click', () => routingDispatcher(uiScreens.mods));
 
         // PURCHASING TRANSACTION SYSTEMS
@@ -1279,23 +1291,35 @@ const SimulationCorePipelineHub = {
             } else { alert("Insufficient Suns!"); }
         });
 
-        // SLIDER EVENTS FOR MOD SYSTEMS
+        // SLIDER EVENTS FOR MOD SYSTEMS (Enforced with unlocking checks)
         const gravSlider = document.getElementById('mod-gravity-slider');
         gravSlider.addEventListener('input', (e) => {
-            engineState.modGravityMultiplier = parseInt(e.target.value) / 100;
-            document.getElementById('mod-gravity-display').innerText = engineState.modGravityMultiplier.toFixed(1) + "x";
+            if (engineState.unlockedMod2) {
+                engineState.modGravityMultiplier = parseInt(e.target.value) / 100;
+                document.getElementById('mod-gravity-display').innerText = engineState.modGravityMultiplier.toFixed(1) + "x";
+            } else {
+                engineState.modGravityMultiplier = 1.0;
+                e.target.value = 100;
+                document.getElementById('mod-gravity-display').innerText = "1.0x";
+            }
         });
         const speedSlider = document.getElementById('mod-speed-slider');
         speedSlider.addEventListener('input', (e) => {
-            engineState.modSpeedMultiplier = parseInt(e.target.value) / 100;
-            document.getElementById('mod-speed-display').innerText = engineState.modSpeedMultiplier.toFixed(1) + "x";
+            if (engineState.unlockedMod3) {
+                engineState.modSpeedMultiplier = parseInt(e.target.value) / 100;
+                document.getElementById('mod-speed-display').innerText = engineState.modSpeedMultiplier.toFixed(1) + "x";
+            } else {
+                engineState.modSpeedMultiplier = 1.0;
+                e.target.value = 100;
+                document.getElementById('mod-speed-display').innerText = "1.0x";
+            }
         });
 
         // CUSTOMIZATION HOOKS
-        document.getElementById('picker-char-fill').addEventListener('input', (e) => engineState.customFillColor = e.target.value);
-        document.getElementById('picker-char-stroke').addEventListener('input', (e) => engineState.customStrokeColor = e.target.value);
-        document.getElementById('picker-char-trail').addEventListener('input', (e) => engineState.customTrailColor = e.target.value);
-        document.getElementById('picker-bg-hex').addEventListener('input', (e) => engineState.customBgColor = e.target.value);
+        document.getElementById('picker-char-fill').addEventListener('input', (e) => { if(engineState.unlockedMod1) engineState.customFillColor = e.target.value; });
+        document.getElementById('picker-char-stroke').addEventListener('input', (e) => { if(engineState.unlockedMod1) engineState.customStrokeColor = e.target.value; });
+        document.getElementById('picker-char-trail').addEventListener('input', (e) => { if(engineState.unlockedMod1) engineState.customTrailColor = e.target.value; });
+        document.getElementById('picker-bg-hex').addEventListener('input', (e) => { if(engineState.unlockedMod1) engineState.customBgColor = e.target.value; });
         document.getElementById('act-reset-appearance').addEventListener('click', () => {
             engineState.customFillColor = "#00ffaa"; engineState.customStrokeColor = "#ffffff";
             engineState.customTrailColor = "#00ffaa"; engineState.customBgColor = "#0d0f12";
@@ -1409,7 +1433,20 @@ const SimulationCorePipelineHub = {
             SoundSynthesizerNode.initializeAudioContext();
             for (const key in uiScreens) { if(uiScreens[key].classList.contains('active')) engineState.previousScreenBeforeOverlay = uiScreens[key]; }
             document.getElementById('dev-console-input-box').value = "";
-            document.getElementById('dev-console-log-target').innerText = "Terminal ready. \nTry: /setnode [username] [sector] [level]\nOr: /rank [username] [rank]";
+            
+            const currentRank = engineState.activeUserAccount ? engineState.activeUserAccount.rank : "GUEST";
+            document.getElementById('dev-console-permission-notice').innerText = `Logged in as: ${currentRank} | Managed permissions active.`;
+            
+            let helpText = "Terminal ready.\n";
+            if (currentRank === "MODERATOR") {
+                helpText += "Available Commands:\n • /stats [username]\n • /rank [username] [PLAYER/MODERATOR]";
+            } else if (currentRank === "ADMIN") {
+                helpText += "Available Commands:\n • /stats [username]\n • /rank [username] [PLAYER/MODERATOR/ADMIN]\n • /setnode [username] [sector] [level]\n • /give [username] [amount] [stars/moons/suns]";
+            } else {
+                helpText += "Available Commands:\n • /stats [username]\n • /rank [username] [rank]\n • /setnode [username] [sector] [level]\n • /give [username] [amount] [stars/moons/suns]\n • /unlockall [username]";
+            }
+            
+            document.getElementById('dev-console-log-target').innerText = helpText;
             routingDispatcher(uiScreens.devPanel);
         });
         document.getElementById('act-console-close').addEventListener('click', () => { routingDispatcher(engineState.previousScreenBeforeOverlay || uiScreens.main); });
@@ -1423,6 +1460,29 @@ const SimulationCorePipelineHub = {
             const baseCommand = tokens[0].toLowerCase();
             const cleanTokens = tokens.filter(t => t.trim() !== "");
 
+            // Read rank parameters
+            const callerRank = engineState.activeUserAccount ? engineState.activeUserAccount.rank : "GUEST";
+
+            // Establish hierarchical permission matrices
+            const permissions = {
+                "/stats": ["MODERATOR", "ADMIN", "DEVELOPER"],
+                "/rank": ["MODERATOR", "ADMIN", "DEVELOPER"],
+                "/setnode": ["ADMIN", "DEVELOPER"],
+                "/give": ["ADMIN", "DEVELOPER"],
+                "/unlockall": ["DEVELOPER"]
+            };
+
+            // Verify authorization bounds
+            if (!permissions[baseCommand]) {
+                consoleLog.innerText = `❌ UNKNOWN COMMAND PARADE: System syntax string '${baseCommand}' is unrecognizable.`;
+                return;
+            }
+
+            if (!permissions[baseCommand].includes(callerRank)) {
+                consoleLog.innerText = `❌ ACCESS DENIED: Your account tier authorization clear level [${callerRank}] is insufficient to utilize command [${baseCommand}].`;
+                return;
+            }
+
             if (baseCommand === "/rank") {
                 if (cleanTokens.length >= 3) {
                     const targetUser = cleanTokens[1];
@@ -1433,9 +1493,37 @@ const SimulationCorePipelineHub = {
                         consoleLog.innerText = `❌ SYNTAX ERROR: Unknown Rank requested.\nValid selection tokens: PLAYER, MODERATOR, ADMIN, DEVELOPER`;
                         return;
                     }
+
+                    // Enforce Moderator boundary limits
+                    if (callerRank === "MODERATOR") {
+                        if (rawRank === "ADMIN" || rawRank === "DEVELOPER") {
+                            consoleLog.innerText = `❌ ACCESS VIOLATION: Moderators cannot elevate profiles to Admin or Developer ranks.`;
+                            return;
+                        }
+                    }
+
+                    // Enforce Admin boundary limits
+                    if (callerRank === "ADMIN") {
+                        if (rawRank === "DEVELOPER") {
+                            consoleLog.innerText = `❌ ACCESS VIOLATION: Admins cannot elevate profiles to Developer rank.`;
+                            return;
+                        }
+                    }
                     
                     const db = AccountManager.getAllUsers();
                     if (db[targetUser]) {
+                        const targetCurrentRank = db[targetUser].rank || "PLAYER";
+
+                        // Protect higher staff tiers from demotion by lower tiers
+                        if (callerRank === "MODERATOR" && (targetCurrentRank === "MODERATOR" || targetCurrentRank === "ADMIN" || targetCurrentRank === "DEVELOPER") && targetUser !== engineState.activeUserAccount.username) {
+                            consoleLog.innerText = `❌ SECURITY REJECTION: Moderators cannot modify structural attributes of other Staff items.`;
+                            return;
+                        }
+                        if (callerRank === "ADMIN" && (targetCurrentRank === "ADMIN" || targetCurrentRank === "DEVELOPER") && targetUser !== engineState.activeUserAccount.username) {
+                            consoleLog.innerText = `❌ SECURITY REJECTION: Admins cannot alter status values of matching Admins or Developers.`;
+                            return;
+                        }
+
                         db[targetUser].rank = rawRank;
                         AccountManager.saveAllUsers(db);
                         
@@ -1450,7 +1538,7 @@ const SimulationCorePipelineHub = {
                         consoleLog.innerText = `❌ SYSTEM CRITICAL: Profile [${targetUser}] not found inside architecture memory structure.`;
                     }
                 } else {
-                    consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/rank <username> <PLAYER/MODERATOR/ADMIN/DEVELOPER>'";
+                    consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/rank <username> <RANK>'";
                 }
             }
             else if (baseCommand === "/unlockall") {
@@ -1587,8 +1675,6 @@ const SimulationCorePipelineHub = {
                 } else {
                     consoleLog.innerText = "❌ SYNTAX ERROR: Expected format '/stats <username>'";
                 }
-            } else {
-                consoleLog.innerText = `❌ UNKNOWN COMMAND PARADE: System syntax string '${baseCommand}' is unrecognizable.`;
             }
         });
 
